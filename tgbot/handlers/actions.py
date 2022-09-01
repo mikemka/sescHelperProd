@@ -2,7 +2,7 @@ from aiogram import types
 from dispatcher import dp
 from bot import BotDB, user_status, Json
 from . import keyboards
-from filters import Timeout
+from filters import Timeout, IsOwnerFilter
 from datetime import datetime
 import errors
 
@@ -151,3 +151,46 @@ async def thcom(message: types.Message):
         await message.bot.send_message(message.from_user.id, 'Выберите класс', reply_markup=keyboards.get_forms_keyboard())
     else:
         await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER, reply_markup=keyboards.StartButton.keyboard)
+
+
+@dp.message_handler(IsOwnerFilter(), commands=['mail'])
+async def mail(message: types.Message):
+    _text = message.text[6:]
+    _users = BotDB.get_users()
+    # print(BotDB.get_users())
+    # _users = [(1458972380,), (688003991,)]
+    errors = 0
+    for _user in _users:
+        try:
+            await message.bot.send_message(chat_id=_user[-1], text=_text)
+        except:
+            errors += 1
+    await message.reply(f'Отправлено {len(_users) - errors} сообщения. {errors} ошибок', reply=False)
+
+# TODO
+# @dp.message_handler(IsOwnerFilter(), commands=['unreg_user'])
+# async def unreg_user(message: types.Message):
+#     _text = message.text[12:]
+#     if not _text or not _text.isdigit():
+#         return await message.reply('/unreg_user [id юзера]', reply=False)
+#     _user_id = int(_text)
+#     print(_user_id)
+#     if not BotDB.user_exists(_user_id):
+#         return await message.reply('юзера с данным id не существует', reply=False)
+#     BotDB.remove_user(BotDB.get_user_id(_user_id))
+#     await message.reply('успешно удален', reply=False)
+
+
+
+"""
+/mail <b>Бот поздравляет вас с началом учебного года!</b>
+Не забудьте перерегистрироваться на новый класс с помощью /reg
+
+/today, /t - Расписание на сегодня
+/next, /n - Расписание на завтра
+/all, /a - Расписание на любой день
+/status - Статус текущего урока
+/th - Расписание другого класса
+/call, /c - Расписание звонков
+/free, /f - Свободные кабинеты
+"""

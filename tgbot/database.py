@@ -42,6 +42,11 @@ class BotDB:
         """ Удаление юзера из БД """
         self.cursor.execute("DELETE from `users` WHERE `id` = ?", (self.get_user_id(user_id),))
         return self.conn.commit()
+    
+    def get_users(self):
+        """ Все пользователи бота """
+        result = self.cursor.execute("SELECT `id` FROM `users`")
+        return result.fetchall()
 
     def close(self):
         """ Закрываем соединение с БД """

@@ -171,6 +171,11 @@ async def mail(message: types.Message):
     await message.reply(f'Отправлено {len(_users) - _errors} сообщения. {_errors} ошибок', reply=False)
 
 
+@dp.message_handler(IsOwnerFilter(), commands=['count_users'])
+async def count_users(message: types.Message):
+    await message.reply(f'Всего <b>{len(BotDB.get_users())}</b> пользователей', reply=False)
+
+
 """
 TODO
 @dp.message_handler(IsOwnerFilter(), commands=['unreg_user'])

@@ -1,7 +1,6 @@
 import logging
 from aiogram import Bot, Dispatcher
 from filters import *
-from config import DEBUG
 from dotenv import load_dotenv
 import os
 

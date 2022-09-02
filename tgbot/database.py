@@ -45,7 +45,7 @@ class BotDB:
     
     def get_users(self):
         """ Все пользователи бота """
-        result = self.cursor.execute("SELECT `id` FROM `users`")
+        result = self.cursor.execute("SELECT `user_id` FROM `users`")
         return result.fetchall()
 
     def close(self):

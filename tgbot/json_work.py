@@ -13,24 +13,20 @@ class Json:
 
     # Преобразование информации и управление процессом создания таблицы
     def timetable(self, user_id: int, date: int, form=''):
+        weekday = date % 7
         if not date:
             weekday = (datetime.today().weekday() + 1) % 7
         elif date == -1:
             weekday = (datetime.today().weekday() + 2) % 7
-        else:
-            weekday = date % 7
         if weekday:
             if form:
                 return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n{"━" * 15}\n{self.create_table(self.get_json(weekday, self.data["group"][form]))}'
-            else:
-                if not BotDB.is_teacher(user_id):
-                    tmp = BotDB.get_user_form(user_id)
-                    user_form = self.data["group"][tmp]
-                    return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n{"━" * 15}\n{self.create_table(self.get_json(weekday, user_form))}'
-                else:
-                    return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n{"━" * 15}\n{self.create_table(self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
-        else:
-            return '<b>В этот день нет уроков!</b>'
+            if not BotDB.is_teacher(user_id):
+                tmp = BotDB.get_user_form(user_id)
+                user_form = self.data["group"][tmp]
+                return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n{"━" * 15}\n{self.create_table(self.get_json(weekday, user_form))}'
+            return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n{"━" * 15}\n{self.create_table(self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
+        return '<b>В этот день нет уроков!</b>'
 
     @staticmethod  # Отправление запроса учителя
     def get_teacher_json(weekday: int, teacher: str):
@@ -57,8 +53,8 @@ class Json:
         return '\n'.join(e_str)
 
 
-def get_weekday(day: int):
-    return ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота")[day % 6]
+def get_weekday(_day: int):
+    return ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота")[_day % 6]
 
 
 def get_timetable_8ami(date: int):

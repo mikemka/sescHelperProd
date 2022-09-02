@@ -1,2 +1,1 @@
 OWNER_ID = 688003991
-DEBUG = True

@@ -113,7 +113,7 @@ async def process_callback_kb4btn4(message: types.CallbackQuery):
 
 @dp.callback_query_handler(Timeout(), lambda c: c.data and c.data.startswith('allmi'))
 async def process_callback_kb3btn3(message: types.CallbackQuery):
-    await message.bot.send_message(message.from_user.id, get_timetable_8ami(int(message.data[-1])))
+    await message.bot.send_message(message.from_user.id, await get_timetable_8ami(int(message.data[-1])))
     await message.answer()
 
 
@@ -128,7 +128,7 @@ async def process_callback_kb2btn2(message: types.CallbackQuery):
 
 @dp.callback_query_handler(Timeout(), UserStatus('?free_date='), lambda c: c.data and c.data.startswith('lsnfr'))
 async def process_callback_kb1btn1(message: types.CallbackQuery):
-    await message.bot.send_message(message.from_user.id, get_free_auditories(int(user_status[message.from_user.id][-1]), int(message.data[-1])))
+    await message.bot.send_message(message.from_user.id, await get_free_auditories(int(user_status[message.from_user.id][-1]), int(message.data[-1])))
     await message.answer()
 
 

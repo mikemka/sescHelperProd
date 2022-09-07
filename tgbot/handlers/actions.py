@@ -167,6 +167,7 @@ async def admin_help(message: types.Message):
         '\n'
         '/count_users - Количество зарегистрированных пользователей\n'
         # '<code>/update_json</code> - Обновить JSON-файл\n'
+        '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
         '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n'
         '\n'
         'TODO: <code>/unreg_user</code>, <code>/update_json</code>',
@@ -184,6 +185,17 @@ async def mail(message: types.Message):
         except:
             _errors += 1
     await message.reply(f'Отправлено {len(_users) - _errors} сообщения. {_errors} ошибок', reply=False)
+
+
+
+@dp.message_handler(IsOwnerFilter(), commands=['test_mail'])
+async def test_mail(message: types.Message):
+    _text = message.text[11:]
+    try:
+        await message.reply(text=_text, reply=False)
+    except:
+        return await message.reply(f'Отправлено 0 сообщения. 1 ошибок', reply=False)
+    await message.reply(f'Отправлено 1 сообщения. 0 ошибок', reply=False)
 
 
 @dp.message_handler(IsOwnerFilter(), commands=['count_users'])

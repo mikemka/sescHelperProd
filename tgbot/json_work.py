@@ -21,14 +21,24 @@ class Json:
             weekday = (datetime.today().weekday() + 2) % 7
         if weekday:
             if form:
-                # return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n{"━" * 15}\n{self.create_table(asyncio.run(self.get_json_v2(weekday, self.data["group"][form])))}'
-                return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n{"━" * 15}\n{self.create_table(self.get_json(weekday, self.data["group"][form]))}'
-            if not BotDB.is_teacher(user_id):
-                tmp = BotDB.get_user_form(user_id)
-                user_form = self.data["group"][tmp]
-                # return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n{"━" * 15}\n{self.create_table(asyncio.run(self.get_json_v2(weekday, user_form)))}'
-                return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n{"━" * 15}\n{self.create_table(self.get_json(weekday, user_form))}'
-            return f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n{"━" * 15}\n{self.create_table(self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
+                return (
+                    f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n'
+                    f'{"━" * 15}\n'
+                    f'{self.create_table(self.get_json(weekday, self.data["group"][form]))}'
+                )
+            if BotDB.is_teacher(user_id):
+                return (
+                    f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n'
+                    f'{"━" * 15}\n'
+                    f'{self.create_table(self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
+                )
+            tmp = BotDB.get_user_form(user_id)
+            user_form = self.data["group"][tmp]
+            return (
+                f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n'
+                f'{"━" * 15}\n'
+                f'{self.create_table(self.get_json(weekday, user_form))}'
+            )
         return '<b>В этот день нет уроков!</b>'
 
     @staticmethod  # Отправление запроса учителя
@@ -40,17 +50,16 @@ class Json:
     def get_json(weekday: int, group: int):
         return json.loads(requests.get('https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii', params={
             'type': '11', 'scheduleType': 'group', 'weekday': weekday, 'group': group}).text)
-    
+
     @staticmethod
     async def get_json_v2(weekday: int, group: int):
         async with aiohttp.ClientSession() as session:
             async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=group&{weekday=}&{group=}') as resp:
                 return json.loads(await resp.text())
 
-
     @staticmethod  # Создание таблицы
     def create_table(info: dict):
-        def auditory_converter(s):
+        def auditory_converter(s: str):
             if s == 'Нет':
                 return ''
             elif (e := s.find('-')) == -1:
@@ -58,17 +67,17 @@ class Json:
             return f'ин{s[e + 1:]}'
         
         ext, e_str = [['', '', ''] for _ in range(7)], [f'{i}┃ ' for i in range(1, 8)]
-        for i in info['lessons']:
-            ext[i["number"] - 1][i["subgroup"]] = f'{i["subject"][:10]}`{auditory_converter(i["auditory"][:8])}'
-        for i in info['diffs']:
-            ext[i["number"] - 1][i["subgroup"]] = f'<i>{i["subject"][:10]}`{auditory_converter(i["auditory"][:8])}</i>'
+        for lesson in info['lessons']:
+            ext[lesson["number"] - 1][lesson["subgroup"]] = f'{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}'
+        for lesson in info['diffs']:
+            ext[lesson["number"] - 1][lesson["subgroup"]] = f'<i>{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}</i>'
+            for unusued_subgroup in {0, 1, 2} - {lesson["subgroup"]}:
+                ext[lesson["number"] - 1][unusued_subgroup] = ''
         for i in range(7):
             if ext[i][1]:
                 e_str[i] = f'{e_str[i]}{ext[i][1] if ext[i][1] else " ✕ "} ┃ {ext[i][2] if ext[i][2] else " ✕"}'
             else:
                 e_str[i] = f'<b>{e_str[i]}</b>{ext[i][0]}'
-            # e_str[i] = f'{e_str[i]}{ext[i][1] if ext[i][1] else " ✕ "} ┃ {ext[i][2] if ext[i][2] else " ✕"}' \
-            #     if ext[i][1] else f'<b>{e_str[i]}</b>{ext[i][0]}'
         return '\n'.join(e_str)
 
 

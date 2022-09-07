@@ -1,5 +1,4 @@
 import aiohttp
-import asyncio
 import requests
 import bs4
 import simplejson as json

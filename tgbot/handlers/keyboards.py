@@ -1,6 +1,6 @@
 import datetime
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from json import loads
+from sesc_json import SESC_JSON
 
 
 class StartButtons:
@@ -69,8 +69,7 @@ class YesNoButtons:
 
 def get_forms_keyboard():
     # ! FIXME
-    with open('data.json') as file: json = loads(file.read())['group']
-    file.close()
+    json = SESC_JSON['group']
     e, k = 'ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
         e += f"KeyboardButton('{i}'),"
@@ -79,8 +78,7 @@ def get_forms_keyboard():
 
 
 def get_teachers_keyboard():
-    with open('data.json') as file: json = loads(file.read())['teacher']
-    file.close()
+    json = SESC_JSON['teacher']
     e, k = 'ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
         e += f"KeyboardButton('{i}'),"

@@ -105,7 +105,7 @@ async def process_callback_kb5btn5(message: types.CallbackQuery):
 @dp.callback_query_handler(Timeout(), lambda c: c.data and c.data.startswith('allco'))
 async def process_callback_kb4btn4(message: types.CallbackQuery):
     if BotDB.user_exists(message.from_user.id):
-        await message.bot.send_message(message.from_user.id, Json.timetable(message.from_user.id, int(message.data[-1])))
+        await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, int(message.data[-1])))
         await message.answer()
     else:
         await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)
@@ -163,7 +163,7 @@ async def get_message(message: types.Message):
 async def process_callback_kb1btn1(message: types.CallbackQuery):
     if 'thcom*' in user_status[message.from_user.id]:
         if BotDB.user_exists(message.from_user.id):
-            await message.bot.send_message(message.from_user.id, Json.timetable(message.from_user.id, int(message.data[-1]), form=user_status[message.from_user.id][6:]), reply_markup=keyboards.keyboard_r())
+            await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, int(message.data[-1]), form=user_status[message.from_user.id][6:]), reply_markup=keyboards.keyboard_r())
             await message.answer()
         else:
             await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)

@@ -1,5 +1,4 @@
 import aiohttp
-import requests
 import bs4
 import simplejson as json
 from datetime import datetime
@@ -13,7 +12,7 @@ class Json:
         self.data = SESC_JSON
 
     # Преобразование информации и управление процессом создания таблицы
-    def timetable(self, user_id: int, date: int, form=''):
+    async def timetable(self, user_id: int, date: int, form=''):
         weekday = date % 7
         if not date:
             weekday = (datetime.today().weekday() + 1) % 7
@@ -24,41 +23,37 @@ class Json:
                 return (
                     f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n'
                     f'{"━" * 15}\n'
-                    f'{self.create_table(self.get_json(weekday, self.data["group"][form]))}'
+                    f'{await self.create_table(await self.get_json(weekday, int(self.data["group"][form])))}'
                 )
             if BotDB.is_teacher(user_id):
                 return (
                     f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n'
                     f'{"━" * 15}\n'
-                    f'{self.create_table(self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
+                    f'{await self.create_table(await self.get_teacher_json(weekday, self.data["teacher"].setdefault(BotDB.get_user_form(user_id), 172)))}'
                 )
             tmp = BotDB.get_user_form(user_id)
             user_form = self.data["group"][tmp]
             return (
                 f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n'
                 f'{"━" * 15}\n'
-                f'{self.create_table(self.get_json(weekday, user_form))}'
+                f'{await self.create_table(await self.get_json(weekday, int(user_form)))}'
             )
         return '<b>В этот день нет уроков!</b>'
 
     @staticmethod  # Отправление запроса учителя
-    def get_teacher_json(weekday: int, teacher: str):
-        return json.loads(requests.get('https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii', params={
-            'type': '11', 'scheduleType': 'teacher', 'weekday': weekday, 'teacher': teacher}).text)
+    async def get_teacher_json(weekday: int, teacher: str):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=teacher&{weekday=}&teacher={teacher}') as resp:
+                return json.loads(await resp.text())
 
     @staticmethod  # Отправление запроса ученика
-    def get_json(weekday: int, group: int):
-        return json.loads(requests.get('https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii', params={
-            'type': '11', 'scheduleType': 'group', 'weekday': weekday, 'group': group}).text)
-
-    @staticmethod
-    async def get_json_v2(weekday: int, group: int):
+    async def get_json(weekday: int, group: int):
         async with aiohttp.ClientSession() as session:
             async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=group&{weekday=}&{group=}') as resp:
                 return json.loads(await resp.text())
 
     @staticmethod  # Создание таблицы
-    def create_table(info: dict):
+    async def create_table(info: dict):
         def auditory_converter(s: str):
             if s == 'Нет':
                 return ''

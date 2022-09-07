@@ -101,14 +101,14 @@ async def lesson_status(message: types.Message):
 @dp.message_handler(Timeout(), commands=["today", "t"])
 async def today(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
-        return await message.bot.send_message(message.from_user.id, Json.timetable(message.from_user.id, 0))
+        return await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, 0))
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
 
 
 @dp.message_handler(Timeout(), commands=["next", "n"])
 async def next_day(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
-        return await message.bot.send_message(message.from_user.id, Json.timetable(message.from_user.id, -1))
+        return await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, -1))
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
 
 
@@ -160,6 +160,21 @@ async def thcom(message: types.Message):
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER, reply_markup=keyboards.StartButton.keyboard,)
 
 
+@dp.message_handler(IsOwnerFilter(), commands=['admin'])
+async def admin_help(message: types.Message):
+    await message.reply(
+        '<b>Панель администратора</b>\n'
+        '\n'
+        '/count_users - Количество зарегистрированных пользователей\n'
+        # '<code>/update_json</code> - Обновить JSON-файл\n'
+        '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n'
+        '\n'
+        'TODO: <code>/unreg_user</code>, <code>/update_json</code>',
+        reply=False,
+        reply_markup=keyboards.HelpButton.keyboard,
+    )
+
+
 @dp.message_handler(IsOwnerFilter(), commands=['mail'])
 async def mail(message: types.Message):
     _text, _users, _errors = message.text[6:], BotDB.get_users(), 0
@@ -174,6 +189,14 @@ async def mail(message: types.Message):
 @dp.message_handler(IsOwnerFilter(), commands=['count_users'])
 async def count_users(message: types.Message):
     await message.reply(f'Всего <b>{len(BotDB.get_users())}</b> пользователей', reply=False)
+
+
+# @dp.message_handler(IsOwnerFilter(), commands=['update_json'])
+# async def update_json(message: types.Message):
+#     try:
+#         ...
+#     except Exception as e:
+#         await message.reply(f'<b>Ошибка!</b>\n<code>{e}</code>', reply=False)
 
 
 """

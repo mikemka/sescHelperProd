@@ -61,19 +61,22 @@ class Json:
                 return s
             return f'ин{s[e + 1:]}'
         
-        ext, e_str = [['', '', ''] for _ in range(7)], [f'{i}┃ ' for i in range(1, 8)]
+        ext, e_str = [['', '', ''] for _ in range(7)], ['' for _ in range(7)]
         for lesson in info['lessons']:
             ext[lesson["number"] - 1][lesson["subgroup"]] = f'{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}'
         for lesson in info['diffs']:
+            ext[lesson["number"] - 1] = ['', '', '']
             ext[lesson["number"] - 1][lesson["subgroup"]] = f'<i>{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}</i>'
-            for unusued_subgroup in {0, 1, 2} - {lesson["subgroup"]}:
-                ext[lesson["number"] - 1][unusued_subgroup] = ''
-        for i in range(7):
-            if ext[i][1]:
-                e_str[i] = f'{e_str[i]}{ext[i][1] if ext[i][1] else " ✕ "} ┃ {ext[i][2] if ext[i][2] else " ✕"}'
-            else:
-                e_str[i] = f'<b>{e_str[i]}</b>{ext[i][0]}'
-        return '\n'.join(e_str)
+        for i, lesson in enumerate(ext):
+            if lesson[0]:
+                e_str[i] = lesson[0]
+            elif lesson[1] and lesson[2]:
+                e_str[i] = f'{lesson[1]} ┃ {lesson[2]}'
+            elif lesson[1]:
+                e_str[i] = f'{lesson[1]} ┃  ✕'
+            elif lesson[2]:
+                e_str[i] = f' ✕  ┃ {lesson[2]}'
+        return '\n'.join([f'<b>{i + 1}┃</b> {lesson}' for i, lesson in enumerate(e_str)])
 
 
 async def get_weekday(_day: int):

@@ -1,4 +1,5 @@
 from aiogram import types
+import aiogram
 from dispatcher import dp
 from bot import BotDB, user_status, Json
 from . import keyboards
@@ -166,7 +167,7 @@ async def admin_help(message: types.Message):
         '<b>Панель администратора</b>\n'
         '\n'
         '/count_users - Количество зарегистрированных пользователей\n'
-        # '<code>/update_json</code> - Обновить JSON-файл\n'
+        '/get_database - Скачать базу данных в формате .sqlite3\n'
         '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
         '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n'
         '\n'
@@ -203,25 +204,8 @@ async def count_users(message: types.Message):
     await message.reply(f'Всего <b>{len(BotDB.get_users())}</b> пользователей', reply=False)
 
 
-# @dp.message_handler(IsOwnerFilter(), commands=['update_json'])
-# async def update_json(message: types.Message):
-#     try:
-#         ...
-#     except Exception as e:
-#         await message.reply(f'<b>Ошибка!</b>\n<code>{e}</code>', reply=False)
-
-
-"""
-TODO
-@dp.message_handler(IsOwnerFilter(), commands=['unreg_user'])
-async def unreg_user(message: types.Message):
-    _text = message.text[12:]
-    if not _text or not _text.isdigit():
-        return await message.reply('/unreg_user [id юзера]', reply=False)
-    _user_id = int(_text)
-    print(_user_id)
-    if not BotDB.user_exists(_user_id):
-        return await message.reply('юзера с данным id не существует', reply=False)
-    BotDB.remove_user(BotDB.get_user_id(_user_id))
-    await message.reply('успешно удален', reply=False)
-"""
+@dp.message_handler(IsOwnerFilter(), commands=['get_database'])
+async def get_database(message: types.Message):
+    await message.reply_document(
+        document=aiogram.types.InputFile('database.db', 'database.db'),
+    )

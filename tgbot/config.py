@@ -10,8 +10,10 @@ DATABASE_FILE_PATH = BASE_DIR / 'database.db'
 
 DOTENV_PATH = BASE_DIR / '.env'
 
-if DOTENV_PATH.exists():
-    dotenv.load_dotenv(DOTENV_PATH)
+if not DOTENV_PATH.exists():
+    raise BaseException('.env does not exists')
+
+dotenv.load_dotenv(DOTENV_PATH)
 
 OWNER_ID = ast.literal_eval(os.getenv('OWNER_ID', '688003991'))
 

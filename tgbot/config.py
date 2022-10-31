@@ -10,8 +10,7 @@ DATABASE_FILE_PATH = BASE_DIR / 'database.db'
 
 DOTENV_PATH = BASE_DIR / '.env'
 
-if not DOTENV_PATH.exists():
-    raise BaseException('.env does not exists')
+assert DOTENV_PATH.exists(), '.env does not exists'
 
 dotenv.load_dotenv(DOTENV_PATH)
 

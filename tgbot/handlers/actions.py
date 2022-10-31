@@ -1,14 +1,12 @@
 from aiogram import types
-import aiogram
 from dispatcher import dp
 from bot import BotDB, user_status, Json
 from . import keyboards
-from filters import Timeout, IsOwnerFilter
 from datetime import datetime
 import errors
 
 
-@dp.message_handler(Timeout(), commands=["start", "reg"])
+@dp.message_handler(commands=["start", "reg"])
 async def start(message: types.Message):
     if not BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(
@@ -20,7 +18,7 @@ async def start(message: types.Message):
     await message.bot.send_message(message.from_user.id, errors.ALREADY_REGISTERED, reply_markup=keyboards.StartButtons1.keyboard)
 
 
-@dp.message_handler(Timeout(), commands='cancel')
+@dp.message_handler(commands='cancel')
 async def cancel(message: types.Message):
     user_status.pop(message.from_user.id, None)
     await message.bot.send_message(message.from_user.id, 'Вы остановили выполнение операции')
@@ -31,7 +29,7 @@ async def timetable_mi(message: types.Message):
     await message.bot.send_message(message.from_user.id, 'Выберите день недели', reply_markup=keyboards.all_command_buttons('allmi'))
 
 
-@dp.message_handler(Timeout(), commands="help")
+@dp.message_handler(commands="help")
 async def help_command(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(
@@ -55,7 +53,7 @@ async def help_command(message: types.Message):
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER, reply_markup=keyboards.StartButton.keyboard)
 
 
-@dp.message_handler(Timeout(), commands="status")
+@dp.message_handler(commands="status")
 async def lesson_status(message: types.Message):
     """ Статус текущего урока """
     def convert_minutes(_minutes):
@@ -99,28 +97,28 @@ async def lesson_status(message: types.Message):
     await message.bot.send_message(message.from_user.id, e, reply_markup=keyboards.CallScheduleButton.keyboard)
 
 
-@dp.message_handler(Timeout(), commands=["today", "t"])
+@dp.message_handler(commands=["today", "t"])
 async def today(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, 0))
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
 
 
-@dp.message_handler(Timeout(), commands=["next", "n"])
+@dp.message_handler(commands=["next", "n"])
 async def next_day(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, -1))
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
 
 
-@dp.message_handler(Timeout(), commands=["all", "a"])
+@dp.message_handler(commands=["all", "a"])
 async def all_days(message: types.Message):
     if not BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
     await message.bot.send_message(message.from_user.id, 'Выберите день недели', reply_markup=keyboards.all_command_buttons())
 
 
-@dp.message_handler(Timeout(), commands=["call", "c"])
+@dp.message_handler(commands=["call", "c"])
 async def call_schedule(message: types.Message):
     return await message.bot.send_message(
         message.from_user.id,
@@ -136,7 +134,7 @@ async def call_schedule(message: types.Message):
     )
 
 
-@dp.message_handler(Timeout(), commands="exit")
+@dp.message_handler(commands="exit")
 async def unreg(message: types.Message):
     if BotDB.user_exists(message.from_user.id):
         BotDB.remove_user(message.from_user.id)
@@ -159,53 +157,3 @@ async def thcom(message: types.Message):
         user_status[message.from_user.id] = 'thcom'
         return await message.bot.send_message(message.from_user.id, 'Выберите класс', reply_markup=keyboards.get_forms_keyboard())
     await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER, reply_markup=keyboards.StartButton.keyboard,)
-
-
-@dp.message_handler(IsOwnerFilter(), commands=['admin'])
-async def admin_help(message: types.Message):
-    await message.reply(
-        '<b>Панель администратора</b>\n'
-        '\n'
-        '/count_users - Количество зарегистрированных пользователей\n'
-        '/get_database - Скачать базу данных в формате .sqlite3\n'
-        '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
-        '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n'
-        '\n'
-        'TODO: <code>/unreg_user</code>, <code>/update_json</code>',
-        reply=False,
-        reply_markup=keyboards.HelpButton.keyboard,
-    )
-
-
-@dp.message_handler(IsOwnerFilter(), commands=['mail'])
-async def mail(message: types.Message):
-    _text, _users, _errors = message.text[6:], BotDB.get_users(), 0
-    for _user in _users:
-        try:
-            await message.bot.send_message(chat_id=_user[-1], text=_text)
-        except:
-            _errors += 1
-    await message.reply(f'Отправлено {len(_users) - _errors} сообщения. {_errors} ошибок', reply=False)
-
-
-
-@dp.message_handler(IsOwnerFilter(), commands=['test_mail'])
-async def test_mail(message: types.Message):
-    _text = message.text[11:]
-    try:
-        await message.reply(text=_text, reply=False)
-    except:
-        return await message.reply(f'Отправлено 0 сообщения. 1 ошибок', reply=False)
-    await message.reply(f'Отправлено 1 сообщения. 0 ошибок', reply=False)
-
-
-@dp.message_handler(IsOwnerFilter(), commands=['count_users'])
-async def count_users(message: types.Message):
-    await message.reply(f'Всего <b>{len(BotDB.get_users())}</b> пользователей', reply=False)
-
-
-@dp.message_handler(IsOwnerFilter(), commands=['get_database'])
-async def get_database(message: types.Message):
-    await message.reply_document(
-        document=aiogram.types.InputFile('database.db', 'database.db'),
-    )

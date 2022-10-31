@@ -10,4 +10,9 @@ Json = JsonActions()
 
 
 if __name__ == "__main__":
+    # ping pseudo-unused imports
+    handlers
+    user_status
+
+    # start execution script
     aiogram.executor.start_polling(dispatcher.dp, skip_updates=True)

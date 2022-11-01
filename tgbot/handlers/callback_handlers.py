@@ -1,13 +1,15 @@
+import aiohttp
 from aiogram import types
 from dispatcher import dp
 from transliterate import translit
-from bot import user_status, Json, BotDB
+from bot import user_status, Json, BotDB, user_password
 from json_work import get_timetable_8ami, get_free_auditories
 from aiogram.dispatcher.filters import Text
 from . actions import *
-from . keyboards import *
+import handlers.keyboards as keyboards
 from filters import UserStatus
 from fuzzywuzzy import fuzz
+import handlers.lycreg
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data == 'start01')
@@ -15,8 +17,27 @@ async def process_callback_start01(message: types.CallbackQuery):
     if not BotDB.user_exists(message.from_user.id):
         user_status[message.from_user.id] = 'start > 01'
         await message.bot.send_message(message.from_user.id, 'Хорошо, теперь введите класс в формате "10А"',
-                                       reply_markup=get_forms_keyboard()); await message.answer()
+                                       reply_markup=keyboards.get_forms_keyboard()); await message.answer()
     else: await message.answer(text='Вы уже зарегистрированы! Для начала воспользуйтесь /reg', show_alert=True)
+
+
+@dp.callback_query_handler(lambda c: c.data and c.data.startswith('tabel'))
+async def tabel_callback(cb: types.CallbackQuery):
+    if user_password.get(cb.from_user.id):
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
+            _code, _text = await handlers.lycreg.get_tabel(
+                client=_client,
+                user_login=user_password[cb.from_user.id][0],
+                user_password=user_password[cb.from_user.id][1],
+                period=cb.data.split('*')[1],
+            )
+            if _code and _text.strip() != cb.message.html_text:
+                await cb.bot.send_message(cb.from_user.id, _text, keyboards.try_again_tabel)
+            elif _text.strip() != cb.message.html_text:
+                await cb.message.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
+    else:
+        await cb.bot.send_message(cb.from_user.id, 'Введите команду в формате: <code>/tabel [логин] [пароль]</code>')
+    await cb.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data == 'start02')
@@ -25,7 +46,7 @@ async def process_callback_start02(message: types.CallbackQuery):
     await message.bot.send_message(message.from_user.id, '''
 Хорошо, теперь введите свою фамилию и инициалы
 Например, <b>Иванова Т А</b>
-''', reply_markup=get_teachers_keyboard())
+''', reply_markup=keyboards.get_teachers_keyboard())
     await message.answer()
 
 
@@ -48,7 +69,7 @@ async def process_callback_start06(message: types.CallbackQuery):
         await message.bot.send_message(message.from_user.id, '''
 <b>Приветствуем вас!</b>
 Представьтесь, пожалуйста. Кто вы?
-''', reply_markup=StartButtons.keyboard); await message.answer()
+''', reply_markup=keyboards.StartButtons.keyboard); await message.answer()
     else: await start(message); await message.answer()
 
 
@@ -56,7 +77,6 @@ async def process_callback_start06(message: types.CallbackQuery):
 async def process_callback_kb6btn6(message: types.CallbackQuery): await message.answer('Ошибка!', show_alert=True)
 
 
-# Message handlers
 @dp.message_handler(Text(equals='📅 Расписание'))
 async def with_puree5(message: types.Message): await all_days(message)
 
@@ -121,7 +141,7 @@ async def process_callback_kb3btn3(message: types.CallbackQuery):
 async def process_callback_kb2btn2(message: types.CallbackQuery):
     if BotDB.user_exists(message.from_user.id):
         user_status[message.from_user.id] = '?free_date=' + message.data[-1]
-        await message.bot.send_message(message.from_user.id, 'Выберите урок\nДля отмены воспользуйтесь /cancel', reply_markup=lessons_buttons('lsnfr'))
+        await message.bot.send_message(message.from_user.id, 'Выберите урок\nДля отмены воспользуйтесь /cancel', reply_markup=keyboards.lessons_buttons('lsnfr'))
         await message.answer()
     else: await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)
 
@@ -143,7 +163,7 @@ async def get_message(message: types.Message):
     if tmp in Json.data["group"]:
         BotDB.add_user(message.from_user.id, tmp)
         await message.bot.send_message(message.from_user.id, f"""
-<b>Вы были успешно зарегистрированы</b>. Класс - {tmp}""", reply_markup=HelpButton.keyboard)
+<b>Вы были успешно зарегистрированы</b>. Класс - {tmp}""", reply_markup=keyboards.HelpButton.keyboard)
         user_status.pop(message.from_user.id, None)
     else:
         await message.reply('Класс не найден! Попробуйте еще раз! Для отмены пропишите команду /cancel')
@@ -154,7 +174,7 @@ async def get_message(message: types.Message):
     tmp = translit(message.text.upper(), 'ru')
     if tmp in Json.data["group"]:
         user_status[message.from_user.id] = f'thcom*{tmp}'
-        await message.bot.send_message(message.from_user.id, f'Класс - {tmp}. Выберите день', reply_markup=all_command_buttons('thcom'))
+        await message.bot.send_message(message.from_user.id, f'Класс - {tmp}. Выберите день', reply_markup=keyboards.all_command_buttons('thcom'))
     else:
         await message.reply('Класс не найден! Попробуйте еще раз! Для отмены пропишите команду /cancel')
 
@@ -178,7 +198,7 @@ async def get_message(message: types.Message):
         if mc[1] < (k := fuzz.token_set_ratio(text, i)): mc = (i, k)
     user_status[message.from_user.id] = f'*i*{mc[0]}'
     await message.bot.send_message(message.from_user.id, f'Войти под аккаунтом <b>{mc[0]}</b>?',
-                                   reply_markup=YesNoButtons.keyboard)
+                                   reply_markup=keyboards.YesNoButtons.keyboard)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'rt_yes01')
@@ -186,7 +206,7 @@ async def process_callback_rt_yes01(message: types.CallbackQuery):
     if not BotDB.user_exists(message.from_user.id):
         BotDB.add_teacher(message.from_user.id, user_status[message.from_user.id][3:])
         await message.bot.send_message(message.from_user.id, '<b>Вы успешно вошли в систему!</b>',
-                                       reply_markup=HelpButton.keyboard); await message.answer()
+                                       reply_markup=keyboards.HelpButton.keyboard); await message.answer()
     else: await message.answer(text='Произошла ошибка!\nВоспользуйтесь /start вновь', show_alert=True)
 
 

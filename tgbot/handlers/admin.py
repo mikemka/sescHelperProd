@@ -5,7 +5,7 @@ import dispatcher
 import filters
 import handlers.keyboards as keyboards
 import time
-import handlers.lycreg
+import lycreg_requests
 
 
 @dispatcher.dp.message_handler(filters.IsOwnerFilter(), commands=['admin'])
@@ -62,11 +62,11 @@ async def get_database(message: aiogram.types.Message) -> None:
 async def lycreg_captcha(message: aiogram.types.Message) -> None:
     fetch_time = time.time()
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as client:
-        cpt_file, _ = await handlers.lycreg.fetch_captcha(client)
+        cpt_file, _ = await lycreg_requests.fetch_captcha(client)
     fetch_time = time.time() - fetch_time
     captcha = cpt_file.read()
     solve_time = time.time()
-    cpt_content = await handlers.lycreg.solve_captcha(cpt_file)
+    cpt_content = await lycreg_requests.solve_captcha(cpt_file)
     await message.reply_photo(
         photo=captcha,
         caption=f'<b>{cpt_content}</b>\n'

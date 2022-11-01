@@ -1,10 +1,10 @@
 import aiogram.types
 import aiohttp
-import config
+import bot
 import dispatcher
-import PIL
-import pyscreeze
-import tempfile
+import handlers.keyboards as keyboards
+import lycreg_requests
+import sesc_json
 
 
 try:
@@ -15,50 +15,73 @@ except ImportError:
 
 @dispatcher.dp.message_handler(commands=['lycreg'])
 async def lycreg(message: aiogram.types.Message) -> None:
+    _args = message.get_args().split()
+    if len(_args) < 2:
+        return await message.reply('Введите команду в формате: <code>/lycreg [логин] [пароль]</code>')
+    _user_login, _user_password, *_ = _args
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as client:
-        cpt_file, cpt_id = await fetch_captcha(client)
-        assert cpt_id is not None, 'X-Cpt header doesn\'t exists'
-        login = await lycreg_authorize(
+        auth = await lycreg_requests.lycreg_authorise(
             client=client,
-            cpt=await solve_captcha(cpt_file),
-            cpt_id=cpt_id,
-            login='',
-            pwd='',
+            user_login=_user_login,
+            user_password=_user_password,
         )
-        cpt_file.close()
-        await message.reply(f'<code>{login}</code>', reply=False)
+    await message.reply(f'<code>{auth}</code>', reply=False)
 
 
-async def lycreg_authorize(client: aiohttp.ClientSession, cpt: str, cpt_id: str, login: str, pwd: str) -> dict:
-    async with client.post(
-        'https://lycreg.urfu.ru',
-        data=f'{{"t":"pupil", "l":"{login}", "p":"{pwd}", "f":"login", "ci":{cpt_id}, "c":{cpt} }}',
-    ) as resp:
-        assert resp.status == 200, 'login-function response is not 200'
-        response = await resp.text()
-        assert '¤' in response, 'Bad login response'
-        return json.loads(response)
+@dispatcher.dp.message_handler(commands=['tabel'])
+async def tabel_get(message: aiogram.types.Message) -> None:
+    _args = message.get_args().split()
+    if len(_args) < 2:
+        return await message.reply('Введите команду в формате: <code>/tabel [логин] [пароль]</code>')
+    _user_login, _user_password, *_ = _args
+    bot.user_password[message.from_user.id] = _user_login, _user_password
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
+        _code, _text = await get_tabel(client=_client, user_login=_user_login, user_password=_user_password)
+        if _code:
+            return await message.reply(_text, reply=False, reply_markup=keyboards.try_again_tabel)
+        await message.reply(_text, reply=False, reply_markup=keyboards.choose_tabel_period)
 
 
-async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[tempfile.TemporaryFile, int]:
-    async with client.get('https://lycreg.urfu.ru/cpt.a') as resp:
-        assert resp.status == 200, '/cpt.a response status is not 200'
-        fp = tempfile.TemporaryFile(suffix='.png')
-        fp.write(await resp.read())
-        fp.seek(0)
-        return fp, resp.headers.get('X-Cpt')
-
-
-async def solve_captcha(file: tempfile.TemporaryFile) -> str:
-    captcha, results = PIL.Image.open(file).convert('RGBA'), []
-    number_files = {config.BASE_DIR / 'numbers' / f'{i}_{j}.png': str(i) for i in range(10) for j in range(1, 3)}
-    for file_name, number in number_files.items():
-        number_image = PIL.Image.open(file_name)
-        result = pyscreeze.locate(number_image, captcha, grayscale=True)
-        while result is not None:
-            result = (result[0], result[1], result[0] + result[2], result[1] + result[3])
-            PIL.ImageDraw.Draw(captcha).rectangle(result, fill=0)
-            results.append((number, result[0]))
-            result = pyscreeze.locate(number_image, captcha, grayscale=True)
-    results = [x[0] for x in sorted(results, key=lambda x: x[1])]
-    return ''.join(results)
+async def get_tabel(client: aiohttp.ClientSession, user_login: str, user_password: str, period='') -> tuple[int, str]:
+    def x(i):
+        for j, k in enumerate(_ids):
+            if k[0] == i:
+                return j
+    
+    _auth = await lycreg_requests.lycreg_authorise(
+        client=client,
+        user_login=user_login,
+        user_password=user_password,
+    )
+    if _auth.get('error') is not None:
+        return 1, _auth['error']
+    _user_token = _auth.get('token')
+    _tabel = await lycreg_requests.tabel_get_raw_request(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    if _tabel == 'none':
+        return 1, 'Ошибка сервера. Не удалось выполнить запрос.'
+    if not len(_tabel):
+        return 1, '<b>Табель не сгенерирован.</b>\nНе выставлено ни одной отметки промежуточной аттестации.'
+    _tabel, _ids, _render = json.loads(_tabel), sesc_json.SESC_JSON.get('dtsit').items(), ''
+    if not period:
+        period = set()
+        for _, _subj in _tabel.items():
+            period.update(_subj.keys())
+        period = max(period, key=x)
+    _subject_codes = await lycreg_requests.get_subj_list(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    for _subject_code, _marks in _tabel.items():
+        if _subject_code not in _subject_codes:
+            continue
+        _mark = _marks.get(period, '-')
+        _render += f'<b>{_subject_codes.get(_subject_code, 0)}</b>: {sesc_json.SESC_JSON["full_marks"].get(_mark, _mark)}\n'
+    return (
+        0,
+        f'<b>Табель</b> - {(sesc_json.SESC_JSON["dtsit"] | sesc_json.SESC_JSON["add_dtsit"])[period][1]}\n\n{_render}'
+    )

@@ -1,7 +1,5 @@
-.venv
 venv
 __pycache__
-*.db
 .DS_Store
 .env
 database.db

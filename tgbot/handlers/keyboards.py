@@ -128,3 +128,22 @@ choose_tabel_period = aiogram.types.InlineKeyboardMarkup().add(
 try_again_tabel = aiogram.types.InlineKeyboardMarkup().add(
     aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='tabel*'),
 )
+
+try_again_grades = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='grades*'),
+)
+
+
+def grades_prev_next(prev_hidden=False, next_hidden=False):
+    if prev_hidden:
+        return aiogram.types.InlineKeyboardMarkup().add(
+            aiogram.types.InlineKeyboardButton('→', callback_data='grades*1'),
+        )
+    elif next_hidden:
+        return aiogram.types.InlineKeyboardMarkup().add(
+            aiogram.types.InlineKeyboardButton('←', callback_data='grades*-1'),
+        )
+    return aiogram.types.InlineKeyboardMarkup().add(
+        aiogram.types.InlineKeyboardButton('←', callback_data='grades*-1'),
+        aiogram.types.InlineKeyboardButton('→', callback_data='grades*1'),
+    )

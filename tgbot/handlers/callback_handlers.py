@@ -1,16 +1,13 @@
-import aiohttp
 import aiogram.types
-import datetime
 from dispatcher import dp
 from transliterate import translit
-from bot import user_status, Json, BotDB, user_password
+from bot import user_status, Json, BotDB
 from json_work import get_timetable_8ami, get_free_auditories
 from aiogram.dispatcher.filters import Text
 from . actions import *
 import handlers.keyboards as keyboards
 from filters import UserStatus
 import fuzzywuzzy
-import lycreg_requests
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data == 'start01')
@@ -24,51 +21,6 @@ async def process_callback_start01(message: aiogram.types.CallbackQuery):
         reply_markup=keyboards.get_forms_keyboard(),
     )
     await message.answer()
-
-
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith('tabel'))
-async def tabel_callback(cb: aiogram.types.CallbackQuery):
-    if user_password.get(cb.from_user.id):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-            _code, _text = await lycreg_requests.get_tabel(
-                client=_client,
-                user_login=user_password[cb.from_user.id][0],
-                user_password=user_password[cb.from_user.id][1],
-                period=cb.data.split('*')[1],
-            )
-            if _code and _text.strip() != cb.message.html_text:
-                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_tabel)
-            elif _text.strip() != cb.message.html_text:
-                await cb.message.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
-    else:
-        await cb.bot.send_message(cb.from_user.id, 'Введите команду в формате: <code>/tabel [логин] [пароль]</code>')
-    await cb.answer()
-
-
-@dp.callback_query_handler(lambda c: c.data and c.data.startswith('grades'))
-async def grades_callback(cb: aiogram.types.CallbackQuery):
-    #! add hiding buttons
-    if user_password.get(cb.from_user.id):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-            _goal_week, _shift = cb.data.split('*')[-1], 0
-            if _goal_week:
-                _current = cb.message.html_text[(i := cb.message.html_text.find('(') + 1):i + 11].split('.')[::-1]
-                _delta = datetime.timedelta(days=7)
-                _goal = datetime.datetime(*map(int, _current)) + (_delta if _goal_week == '1' else -_delta)
-                _shift = (datetime.datetime.now() - _goal).days // 7
-            _code, _text = await lycreg_requests.get_grades(
-                client=_client,
-                user_login=user_password[cb.from_user.id][0],
-                user_password=user_password[cb.from_user.id][1],
-                week_shift=-_shift,
-            )
-            if _code and _text.strip() != cb.message.html_text:
-                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_grades)
-            elif _text.strip() != cb.message.html_text:
-                await cb.message.edit_text(_text, reply_markup=keyboards.grades_prev_next())
-    else:
-        await cb.bot.send_message(cb.from_user.id, 'Введите команду в формате: <code>/grades [логин] [пароль]</code>')
-    await cb.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data == 'start02')

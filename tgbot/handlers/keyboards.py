@@ -52,6 +52,10 @@ def keyboard_r():
     ).add(
         aiogram.types.KeyboardButton('📄 Все команды'),
         aiogram.types.KeyboardButton('📅 Выбрать класс'),
+    ).add(
+        aiogram.types.KeyboardButton('🔒 Вход'),
+        aiogram.types.KeyboardButton('📖 Оценки'),
+        aiogram.types.KeyboardButton('📝 Табель'),
     )
 
 
@@ -144,6 +148,23 @@ def grades_prev_next(prev_hidden=False, next_hidden=False):
             aiogram.types.InlineKeyboardButton('←', callback_data='grades*-1'),
         )
     return aiogram.types.InlineKeyboardMarkup().add(
-        aiogram.types.InlineKeyboardButton('←', callback_data='grades*-1'),
-        aiogram.types.InlineKeyboardButton('→', callback_data='grades*1'),
+        aiogram.types.InlineKeyboardButton('«', callback_data='grades*-1'),
+        aiogram.types.InlineKeyboardButton('»', callback_data='grades*1'),
     )
+
+
+how_we_use_password = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton(
+        'Как мы используем ваш пароль?',
+        url='https://telegra.ph/How-we-use-your-password-11-05',
+    ),
+)
+
+lycreg_password_n_help = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton(
+        'Как мы используем ваш пароль?',
+        url='https://telegra.ph/How-we-use-your-password-11-05',
+    ),
+).add(
+    aiogram.types.InlineKeyboardButton('📖 Помощь по командам', callback_data='start04'),
+)

@@ -52,6 +52,10 @@ def keyboard_r():
     ).add(
         aiogram.types.KeyboardButton('📄 Все команды'),
         aiogram.types.KeyboardButton('📅 Выбрать класс'),
+    ).add(
+        aiogram.types.KeyboardButton('🔒 Вход'),
+        aiogram.types.KeyboardButton('📖 Оценки'),
+        aiogram.types.KeyboardButton('📝 Табель'),
     )
 
 
@@ -96,9 +100,9 @@ class YesNoButtons:
 def get_forms_keyboard():
     #! FIXME
     json = sesc_json.SESC_JSON['group']
-    e, k = 'ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
+    e, k = 'aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
-        e += f"KeyboardButton('{i}'),"
+        e += f"aiogram.types.KeyboardButton('{i}'),"
         k += 1
     return eval(f'{e})')
 
@@ -106,9 +110,61 @@ def get_forms_keyboard():
 def get_teachers_keyboard():
     #! FIXME
     json = sesc_json.SESC_JSON['teacher']
-    e, k = 'ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
+    e, k = 'aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
-        e += f"KeyboardButton('{i}'),"
+        e += f"aiogram.types.KeyboardButton('{i}'),"
         if k % 2 == 0: e += ').add('
         k += 1
     return eval(f'{e})')
+
+choose_tabel_period = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton('1 четверть', callback_data='tabel*d205a'),
+    aiogram.types.InlineKeyboardButton('2 четверть', callback_data='tabel*d331b'),
+).add(
+    aiogram.types.InlineKeyboardButton('3 четверть', callback_data='tabel*d628d'),
+    aiogram.types.InlineKeyboardButton('4 четверть', callback_data='tabel*d915e'),
+).add(
+    aiogram.types.InlineKeyboardButton('1п', callback_data='tabel*d331c'),
+    aiogram.types.InlineKeyboardButton('2п', callback_data='tabel*d915f'),
+    aiogram.types.InlineKeyboardButton('Год', callback_data='tabel*d925g'),
+)
+
+try_again_tabel = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='tabel*'),
+)
+
+try_again_grades = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='grades*'),
+)
+
+
+def grades_prev_next(prev_hidden=False, next_hidden=False):
+    if prev_hidden:
+        return aiogram.types.InlineKeyboardMarkup().add(
+            aiogram.types.InlineKeyboardButton('→', callback_data='grades*1'),
+        )
+    elif next_hidden:
+        return aiogram.types.InlineKeyboardMarkup().add(
+            aiogram.types.InlineKeyboardButton('←', callback_data='grades*-1'),
+        )
+    return aiogram.types.InlineKeyboardMarkup().add(
+        aiogram.types.InlineKeyboardButton('«', callback_data='grades*-1'),
+        aiogram.types.InlineKeyboardButton('»', callback_data='grades*1'),
+    )
+
+
+how_we_use_password = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton(
+        'Как мы используем ваш пароль?',
+        url='https://telegra.ph/How-we-use-your-password-11-05',
+    ),
+)
+
+lycreg_password_n_help = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton(
+        'Как мы используем ваш пароль?',
+        url='https://telegra.ph/How-we-use-your-password-11-05',
+    ),
+).add(
+    aiogram.types.InlineKeyboardButton('📖 Помощь по командам', callback_data='start04'),
+)

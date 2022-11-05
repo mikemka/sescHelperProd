@@ -42,13 +42,13 @@ class Json:
 
     @staticmethod  # Отправление запроса учителя
     async def get_teacher_json(weekday: int, teacher: str):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=teacher&{weekday=}&teacher={teacher}') as resp:
                 return json.loads(await resp.text())
 
     @staticmethod  # Отправление запроса ученика
     async def get_json(weekday: int, group: int):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=group&{weekday=}&{group=}') as resp:
                 return json.loads(await resp.text())
 
@@ -90,7 +90,7 @@ async def get_timetable_8ami(date: int):
             tmp1 = tmp1[tmp1.find(weekday):]
             return tmp1[tmp1.find('<tbody>'):tmp1.find('</tbody>')]
         
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             async with session.get('https://lyceum.urfu.ru/8ami') as resp:
                 data = await resp.text()
                 b = f"{bs4.BeautifulSoup(await get_info(data), features='html.parser').text}\t"
@@ -115,8 +115,10 @@ async def get_timetable_8ami(date: int):
 async def get_free_auditories(weekday: int, lesson: int):
     async def get_table():
         ext = []
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=all&{weekday=}') as resp:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
+            async with session.get(
+                f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=all&{weekday=}',
+            ) as resp:
                 data = await resp.text()
                 data = json.loads(data)['auditories']
                 for aud in data:

@@ -1,5 +1,2 @@
-import json  #? Probably unusued
-
-
 user_status = {}
-timeout = {}
+user_password = {}

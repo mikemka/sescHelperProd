@@ -1,6 +1,6 @@
-import datetime
 import aiohttp
 import config
+import datetime
 import errors
 import PIL
 import pyscreeze
@@ -82,10 +82,10 @@ async def lycreg_authorise(client: aiohttp.ClientSession, user_login: str, user_
 
 
 # cached
-async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_token: str):
-    # return cache
+async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False):
+    # return cache (3 days)
     _x = sesc_json.SESC_JSON.get('subject_list')
-    if _x is not None and time.time() - sesc_json.SESC_JSON.get('^cache_subj_list', 0) < 259200:  # 3 days in seconds
+    if _x is not None and not no_cache and time.time() - sesc_json.SESC_JSON.get('^cache_subj_list', 0) < 259200:
         return sesc_json.SESC_JSON['default_subjects'] | _x
     # update cache
     sesc_json.SESC_JSON['^cache_subj_list'] = time.time()
@@ -96,10 +96,10 @@ async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_tok
 
 
 # cached
-async def get_teach_list(client: aiohttp.ClientSession, user_login: str, user_token: str):
-    # return cache
+async def get_teach_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False):
+    # return cache (3 days)
     _x = sesc_json.SESC_JSON.get('teach_list')
-    if _x is not None and time.time() - sesc_json.SESC_JSON.get('^cache_teach_list', 0) < 259200:  # 3 days in seconds
+    if _x is not None and not no_cache and time.time() - sesc_json.SESC_JSON.get('^cache_teach_list', 0) < 259200:
         return _x
     # update cache
     sesc_json.SESC_JSON['^cache_teach_list'] = time.time()
@@ -112,14 +112,14 @@ async def get_teach_list(client: aiohttp.ClientSession, user_login: str, user_to
 
 
 # cached
-async def get_week_days(week_shift=0) -> tuple[list, str, str]:
+async def get_week_days(week_shift=0, no_cache=False) -> tuple[list, str, str]:
     assert week_shift <= 0, 'week_shift must be <= 0'
     week_shift = -week_shift
 
-    # return cache
+    # return cache (3 hours)
     _x = sesc_json.SESC_JSON.get(f'current_week_days_{week_shift}')
     _cache_time = time.time() - sesc_json.SESC_JSON.get(f'^cache_week_days_{week_shift}', 0)
-    if _x is not None and _cache_time < 10800:  # 3 hours in seconds
+    if _x is not None and _cache_time < 10800 and not no_cache:
         return _x
 
     # update cache

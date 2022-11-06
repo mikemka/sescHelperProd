@@ -16,10 +16,10 @@ async def admin_help(message: aiogram.types.Message) -> None:
         '/count_users - Количество зарегистрированных пользователей\n'
         '/get_database - Скачать базу данных в формате .sqlite3\n'
         '/lycreg_captcha - Проверка работоспособности решения капчи\n'
+        '/update_cache - Обновление кэша Scole\n'
         '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
-        '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n'
-        '\n'
-        'TODO: <code>/unreg_user</code>, <code>/update_json</code>',
+        '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n',
+        # TODO: /unreg_user, /update_json
         reply=False,
         reply_markup=keyboards.HelpButton.keyboard,
     )
@@ -75,3 +75,38 @@ async def lycreg_captcha(message: aiogram.types.Message) -> None:
         reply=False,
     )
     cpt_file.close()
+
+
+@dispatcher.dp.message_handler(filters.IsOwnerFilter(), commands=['update_cache'])
+async def update_cache(message: aiogram.types.Message) -> None:
+    _args = message.get_args().split()
+    if len(_args) < 2:
+        return await message.reply('Введите команду в формате: <code>/update_cache [логин] [пароль]</code>')
+    _user_login, _user_password, *_ = _args
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as client:
+        _auth = await lycreg_requests.lycreg_authorise(
+            client=client,
+            user_login=_user_login,
+            user_password=_user_password,
+        )
+        if _auth.get('error') is not None:
+            return 1, _auth['error']
+        _user_token = _auth['token']
+        await lycreg_requests.get_subj_list(
+            client=client,
+            user_login=_user_login,
+            user_token=_user_token,
+            no_cache=True,
+        )
+        await lycreg_requests.get_teach_list(
+            client=client,
+            user_login=_user_login,
+            user_token=_user_token,
+            no_cache=True,
+        )
+        for i in range(5):
+            await lycreg_requests.get_week_days(
+                week_shift=-i,
+                no_cache=True,
+            )
+    await message.reply('Updated', reply=False)

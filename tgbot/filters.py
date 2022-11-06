@@ -8,7 +8,7 @@ class IsOwnerFilter(BoundFilter):
     key = "is_owner"
 
     async def check(self, message: types.Message):
-        return message.from_user.id == config.OWNER_ID
+        return message.from_user.id in config.ADMIN_IDS
 
 
 class Timeout(Filter):

@@ -77,30 +77,27 @@ async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
     _x = bot.user_password.get(message.from_user.id)
     if len(_args) < 2:
         if _x:
-            return await message.reply(
+            return await message.answer(
                 f'<b>Вы уже сохранили свой пароль</b> (<tg-spoiler>{"/".join(_x)}</tg-spoiler>)\n'
                 '\n'
                 'Для смены пароля, введите команду в формате: <code>/lycreg [логин] [пароль]</code>',
-                reply=False,
                 reply_markup=keyboards.lycreg_password_n_help,
             )
-        return await message.reply(
+        return await message.answer(
             '<b>Вход в электронный журнал «Шкала».</b>\n'
             '\n'
             'Введите команду в формате: <code>/lycreg [логин] [пароль]</code>',
-            reply=False,
             reply_markup=keyboards.how_we_use_password,
         )
     _user_login, _user_password, *_ = _args
     bot.user_password[message.from_user.id] = _user_login, _user_password
-    await message.reply(
+    await message.answer(
         '<b>Вы успешно сохранили пароль.</b> Мы сохраним ваши данные до следующей перезагрузки бота.\n'
         '\n'
         f'Логин: <tg-spoiler>{_user_login}</tg-spoiler>,\n'
         f'Пароль: <tg-spoiler>{_user_password}</tg-spoiler>.\n'
         '\n'
         'Для его смены, используйте команду /lycreg повторно.',
-        reply=False,
         reply_markup=keyboards.lycreg_password_n_help,
     )
     await message.delete()
@@ -110,10 +107,8 @@ async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
 async def tabel(message: aiogram.types.Message) -> None:
     _x = bot.user_password.get(message.from_user.id)
     if not _x:
-        return await message.reply(
-            'Вы не сохранили свой пароль! Воспользуйтесь командой /lycreg.',
-            reply=False,
-        )
+        return await message.answer(errors.LYCREG.NO_PASSWORD)
+    _msg = await message.answer(errors.LYCREG.PROCESS)
     _user_login, _user_password = _x
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
         _code, _text = await lycreg_requests.get_tabel(
@@ -121,19 +116,25 @@ async def tabel(message: aiogram.types.Message) -> None:
             user_login=_user_login,
             user_password=_user_password,
         )
-        if _code:
-            return await message.reply(_text, reply=False, reply_markup=keyboards.try_again_tabel)
-        await message.reply(_text, reply=False, reply_markup=keyboards.choose_tabel_period)
+        if not _code:
+            return await _msg.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
+        _code, _text = await lycreg_requests.get_tabel(
+            client=_client,
+            user_login=_user_login,
+            user_password=_user_password,
+        )
+        if not _code:
+            return await _msg.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
+        await _msg.edit_text(_text, reply_markup=keyboards.try_again_tabel)
 
 
 @dispatcher.dp.message_handler(commands=['grades'])
 async def grades(message: aiogram.types.Message) -> None:
     _x = bot.user_password.get(message.from_user.id)
     if not _x:
-        return await message.reply(
-            'Вы не сохранили свой пароль! Воспользуйтесь командой /lycreg.',
-            reply=False,
-        )
+        return await message.answer(errors.LYCREG.NO_PASSWORD)
+    _msg = await message.answer(errors.LYCREG.PROCESS)
     _user_login, _user_password = _x
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
         _code, _text = await lycreg_requests.get_grades(
@@ -141,6 +142,14 @@ async def grades(message: aiogram.types.Message) -> None:
             user_login=_user_login,
             user_password=_user_password,
         )
-        if _code:
-            return await message.reply(_text, reply=False, reply_markup=keyboards.try_again_grades)
-        await message.reply(_text, reply=False, reply_markup=keyboards.grades_prev_next())
+        if not _code:
+            return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
+        _code, _text = await lycreg_requests.get_grades(
+            client=_client,
+            user_login=_user_login,
+            user_password=_user_password,
+        )
+        if not _code:
+            return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
+        await _msg.edit_text(_text, reply_markup=keyboards.try_again_grades)

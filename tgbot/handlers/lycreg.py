@@ -4,6 +4,7 @@ import aiohttp
 import bot
 import datetime
 import dispatcher
+import errors
 import handlers.keyboards as keyboards
 import lycreg_requests
 
@@ -23,7 +24,7 @@ async def tabel_callback(cb: aiogram.types.CallbackQuery):
             elif _text.strip() != cb.message.html_text:
                 await cb.message.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
     else:
-        await cb.bot.send_message(cb.from_user.id, 'Вы не сохранили свой пароль! Воспользуйтесь командой /lycreg.')
+        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
     await cb.answer()
 
 
@@ -49,7 +50,7 @@ async def grades_callback(cb: aiogram.types.CallbackQuery):
             elif _text.strip() != cb.message.html_text:
                 await cb.message.edit_text(_text, reply_markup=keyboards.grades_prev_next())
     else:
-        await cb.bot.send_message(cb.from_user.id, 'Вы не сохранили свой пароль! Воспользуйтесь командой /lycreg.')
+        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
     await cb.answer()
 
 
@@ -102,6 +103,7 @@ async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
         reply=False,
         reply_markup=keyboards.lycreg_password_n_help,
     )
+    await message.delete()
 
 
 @dispatcher.dp.message_handler(commands=['tabel'])

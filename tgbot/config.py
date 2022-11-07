@@ -13,7 +13,7 @@ DOTENV_PATH = BASE_DIR / '.env'
 if DOTENV_PATH.exists():
     dotenv.load_dotenv(DOTENV_PATH)
 
-OWNER_ID = ast.literal_eval(os.getenv('OWNER_ID', '688003991'))
+ADMIN_IDS = ast.literal_eval(os.getenv('ADMIN_IDS', '[688003991]'))
 
 DEBUG = ast.literal_eval(os.getenv('DEBUG'))
 

@@ -116,15 +116,16 @@ async def get_week_days(week_shift=0, no_cache=False) -> tuple[list, str, str]:
     assert week_shift <= 0, 'week_shift must be <= 0'
     week_shift = -week_shift
 
-    # return cache (3 hours)
+    # return cache (by days)
     _x = sesc_json.SESC_JSON.get(f'current_week_days_{week_shift}')
-    _cache_time = time.time() - sesc_json.SESC_JSON.get(f'^cache_week_days_{week_shift}', 0)
-    if _x is not None and _cache_time < 10800 and not no_cache:
+    _now = datetime.datetime.now()
+    _cache_time = sesc_json.SESC_JSON.get(f'^cache_week_days_{week_shift}', _now - datetime.timedelta(days=7))
+    if _x is not None and _cache_time.strftime('%Y-%m-%d') == _now.strftime('%Y-%m-%d') and not no_cache:
         return _x
 
     # update cache
-    sesc_json.SESC_JSON[f'^cache_week_days_{week_shift}'] = time.time()
-    _now = datetime.datetime.now() - datetime.timedelta(days=week_shift * 7)
+    sesc_json.SESC_JSON[f'^cache_week_days_{week_shift}'] = _now
+    _now -= datetime.timedelta(days=week_shift * 7)
     sesc_json.SESC_JSON[f'current_week_days_{week_shift}'] = (
         [
             await date_convert((_now - datetime.timedelta(days=i)).strftime('%Y-%m-%d'))

@@ -89,3 +89,18 @@ async def update_cache(message: aiogram.types.Message) -> None:
                 no_cache=True,
             )
     await message.answer('Updated')
+
+
+@dispatcher.dp.message_handler(filters.IsOwnerFilter(), commands=['lycreg_captcha'])
+async def lycreg_captcha(message: aiogram.types.Message) -> None:
+    fetch_time = time.time()
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as client:
+        captcha, _ = await lycreg_requests.fetch_captcha(client)
+    fetch_time = time.time() - fetch_time
+    solve_time = time.time()
+    cpt_content = await lycreg_requests.solve_captcha(captcha)
+    await message.answer(
+        f'<b>{cpt_content}</b>\n'
+        f'<code>request={fetch_time * 1000 :.2f}ms\n'
+        f'solving={(time.time() - solve_time) * 1000:.2f}ms</code>'
+    )

@@ -15,7 +15,6 @@ async def admin_help(message: aiogram.types.Message) -> None:
         '\n'
         '/count_users - Количество зарегистрированных пользователей\n'
         '/get_database - Скачать базу данных в формате .sqlite3\n'
-        '/lycreg_captcha - Проверка работоспособности решения капчи\n'
         '/update_cache - Обновление кэша Scole\n'
         '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
         '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n',
@@ -55,26 +54,6 @@ async def get_database(message: aiogram.types.Message) -> None:
     await message.reply_document(
         document=aiogram.types.InputFile('database.db', 'database.db'),
     )
-
-
-@dispatcher.dp.message_handler(filters.IsOwnerFilter(), commands=['lycreg_captcha'])
-async def lycreg_captcha(message: aiogram.types.Message) -> None:
-    fetch_time = time.time()
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as client:
-        cpt_file, _ = await lycreg_requests.fetch_captcha(client)
-    fetch_time = time.time() - fetch_time
-    captcha = cpt_file.read()
-    solve_time = time.time()
-    cpt_content = await lycreg_requests.solve_captcha(cpt_file)
-    await message.answer_photo(
-        photo=captcha,
-        caption=(
-            f'<b>{cpt_content}</b>\n'
-            f'<code>request={fetch_time * 1000 :.2f}ms\n'
-            f'solving={(time.time() - solve_time) * 1000:.2f}ms</code>'
-        ),
-    )
-    cpt_file.close()
 
 
 @dispatcher.dp.message_handler(filters.IsOwnerFilter(), commands=['update_cache'])

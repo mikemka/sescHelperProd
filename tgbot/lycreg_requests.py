@@ -1,12 +1,8 @@
 import aiohttp
-import config
 import datetime
 import errors
-import PIL
-import pyscreeze
 import sesc_json
 import simplejson as json
-import tempfile
 import time
 
 
@@ -63,10 +59,9 @@ async def journal_get_raw_request(client: aiohttp.ClientSession, user_login: str
 
 
 async def lycreg_authorise(client: aiohttp.ClientSession, user_login: str, user_password: str) -> dict:
-    captcha_file, captcha_id = await fetch_captcha(client=client)
+    captcha_bytes, captcha_id = await fetch_captcha(client=client)
     assert captcha_id is not None, 'X-Cpt header doesn\'t exists'
-    solved_captcha = await solve_captcha(captcha_file)
-    captcha_file.close()
+    solved_captcha = await solve_captcha(captcha_bytes)
     authorise = await authorise_raw_request(
         client=client,
         captcha=solved_captcha,
@@ -140,28 +135,38 @@ async def get_week_days(week_shift=0, no_cache=False) -> tuple[list, str, str]:
     return sesc_json.SESC_JSON[f'current_week_days_{week_shift}']
 
 
-async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[tempfile.TemporaryFile, int]:
+async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
     async with client.get(f'{sesc_json.SESC_JSON["scole_domain"]}cpt.a') as response:
         assert response.status == 200, '/cpt.a response status is not 200'
-        file = tempfile.TemporaryFile(suffix='.png')
-        file.write(await response.read())
-        file.seek(0)
-        return file, response.headers.get('X-Cpt')
+        return await response.read(), response.headers.get('X-Cpt')
 
 
-async def solve_captcha(file: tempfile.TemporaryFile) -> str:
-    captcha, results = PIL.Image.open(file).convert('RGBA'), []
-    number_files = {config.BASE_DIR / 'numbers' / f'{i}_{j}.png': str(i) for i in range(10) for j in range(1, 3)}
-    for file_name, number in number_files.items():
-        number_image = PIL.Image.open(file_name)
-        result = pyscreeze.locate(number_image, captcha, grayscale=True)
-        while result is not None:
-            result = (result[0], result[1], result[0] + result[2], result[1] + result[3])
-            PIL.ImageDraw.Draw(captcha).rectangle(result, fill=0)
-            results.append((number, result[0]))
-            result = pyscreeze.locate(number_image, captcha, grayscale=True)
-    results = [x[0] for x in sorted(results, key=lambda x: x[1])]
-    return ''.join(results)
+async def solve_captcha(captcha_bytes: bytes) -> str:
+    # idk how but this works
+    columns_pairs = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2, (24591, 57371): 2,
+                     (519935, 462343): 3, (115459, 99075): 3, (63503, 524287): 4, (227, 451): 4, (261951, 523903): 5, (24831, 6159): 5,
+                     (465927, 516095): 6, (15111, 29443): 6, (460799, 524287): 7, (24591, 12303): 7, (524287, 462343): 8, (27, 15): 8,
+                     (459207, 459143): 9, (57731, 49347): 9}
+    num2i = {0: 0, 1: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7, 256: 8, 512: 9, 1024: 10, 2048: 11, 4096: 12,
+            8192: 13, 16384: 14, 32768: 15, 65536: 16, 131072: 17, 262144: 18, 524288: 19, 1048576: 20, 2097152: 21,
+            4194304: 22, 8388608: 23, 16777216: 24, 33554432: 25, 67108864: 26, 134217728: 27, 268435456: 28,
+            536870912: 29, 1073741824: 30, 2147483648: 31}
+    data = captcha_bytes[104:-20]
+    numbers = [int(data[i: 3630: 121].replace(b'\x00', b'0').replace(b'\x01', b'1'), 2) for i in range(121)]
+    columns = [n >> num2i[n & -n] for n in numbers]
+    solution = ''
+    wait_for_0 = False
+    for i in range(120):
+        column1 = columns[i]
+        column2 = columns[i + 1]
+        pair = column1, column2
+        if wait_for_0:
+            if column2 == 0:
+                wait_for_0 = False
+        elif pair in columns_pairs:
+            solution += str(columns_pairs[pair])
+            wait_for_0 = True
+    return solution
 
 
 async def date_convert(data_inp: str, full=0) -> str:

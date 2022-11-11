@@ -7,7 +7,7 @@ from aiogram.dispatcher.filters import Text
 from . actions import *
 import handlers.keyboards as keyboards
 from filters import UserStatus
-import fuzzywuzzy
+import fuzzywuzzy.fuzz
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data == 'start01')

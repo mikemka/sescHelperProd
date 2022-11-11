@@ -7,6 +7,7 @@ import dispatcher
 import errors
 import handlers.keyboards as keyboards
 import lycreg_requests
+import string
 
 
 @dispatcher.dp.callback_query_handler(filters.Text(startswith='tabel'))
@@ -90,6 +91,8 @@ async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
             reply_markup=keyboards.how_we_use_password,
         )
     _user_login, _user_password, *_ = _args
+    _user_login = ''.join((i for i in _user_login if i in string.ascii_letters or i in string.digits))
+    _user_password = ''.join((i for i in _user_password if i in string.ascii_letters or i in string.digits))
     bot.user_password[message.from_user.id] = _user_login, _user_password
     await message.answer(
         '<b>Вы успешно сохранили пароль.</b> Мы сохраним ваши данные до следующей перезагрузки бота.\n'

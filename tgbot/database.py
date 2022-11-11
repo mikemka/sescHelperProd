@@ -31,15 +31,11 @@ class BotDB:
         """ Создать таблицу users в БД """
         self.cursor.execute(
             'CREATE TABLE users ('
-            '    id         INTEGER  PRIMARY KEY AUTOINCREMENT'
-            '                        NOT NULL,'
-            '    user_id    INTEGER  NOT NULL'
-            '                        UNIQUE,'
+            '    id         INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,'
+            '    user_id    INTEGER  NOT NULL UNIQUE,'
             '    form       STRING   NOT NULL,'
-            '    datetime   DATETIME NOT NULL'
-            '                        DEFAULT ( (DATETIME("now") ) ),'
-            '    is_teacher BOOLEAN  NOT NULL'
-            '                        DEFAULT ( (FALSE) ) '
+            '    datetime   DATETIME NOT NULL DEFAULT ( (DATETIME(\'now\') ) ),'
+            '    is_teacher BOOLEAN  NOT NULL DEFAULT ( (FALSE) )'
             ');'
         )
         return self.conn.commit()
@@ -47,7 +43,7 @@ class BotDB:
     def add_teacher(self, user_id, form):
         """ Добавляем учителя в БД """
         self.cursor.execute("INSERT INTO `users` (`user_id`, `form`, `is_teacher`) VALUES (?, ?, ?)",
-                            (user_id, form, True))
+                            (user_id, form, 1))
         return self.conn.commit()
 
     def get_user_form(self, user_id):

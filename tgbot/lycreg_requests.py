@@ -143,30 +143,26 @@ async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
 
 async def solve_captcha(captcha_bytes: bytes) -> str:
     # idk how but this works
-    columns_pairs = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2, (24591, 57371): 2,
+    COLUMNS_PAIRS = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2, (24591, 57371): 2,
                      (519935, 462343): 3, (115459, 99075): 3, (63503, 524287): 4, (227, 451): 4, (261951, 523903): 5, (24831, 6159): 5,
                      (465927, 516095): 6, (15111, 29443): 6, (460799, 524287): 7, (24591, 12303): 7, (524287, 462343): 8, (27, 15): 8,
                      (459207, 459143): 9, (57731, 49347): 9}
-    num2i = {0: 0, 1: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7, 256: 8, 512: 9, 1024: 10, 2048: 11, 4096: 12,
+    NUM2I = {0: 0, 1: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7, 256: 8, 512: 9, 1024: 10, 2048: 11, 4096: 12,
             8192: 13, 16384: 14, 32768: 15, 65536: 16, 131072: 17, 262144: 18, 524288: 19, 1048576: 20, 2097152: 21,
             4194304: 22, 8388608: 23, 16777216: 24, 33554432: 25, 67108864: 26, 134217728: 27, 268435456: 28,
             536870912: 29, 1073741824: 30, 2147483648: 31}
-    data = captcha_bytes[104:-20]
-    numbers = [int(data[i: 3630: 121].replace(b'\x00', b'0').replace(b'\x01', b'1'), 2) for i in range(121)]
-    columns = [n >> num2i[n & -n] for n in numbers]
-    solution = ''
-    wait_for_0 = False
+    _data = captcha_bytes[104:-20]
+    _numbers = (int(_data[i: 3630: 121].replace(b'\x00', b'0').replace(b'\x01', b'1'), 2) for i in range(121))
+    _columns = [n >> NUM2I[n & -n] for n in _numbers]
+    _solution, _wait_for_0 = '', False
     for i in range(120):
-        column1 = columns[i]
-        column2 = columns[i + 1]
-        pair = column1, column2
-        if wait_for_0:
-            if column2 == 0:
-                wait_for_0 = False
-        elif pair in columns_pairs:
-            solution += str(columns_pairs[pair])
-            wait_for_0 = True
-    return solution
+        _pair = _columns[i], _columns[i + 1]
+        if _wait_for_0 and _pair[1] == 0:
+            _wait_for_0 = False
+        elif _pair in COLUMNS_PAIRS:
+            _solution += str(COLUMNS_PAIRS[_pair])
+            _wait_for_0 = True
+    return _solution
 
 
 async def date_convert(data_inp: str, full=0) -> str:

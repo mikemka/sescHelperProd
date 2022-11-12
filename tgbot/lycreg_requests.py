@@ -142,7 +142,7 @@ async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
 
 
 async def solve_captcha(captcha_bytes: bytes) -> str:
-    # idk how but this works
+    # idk how but it works
     COLUMNS_PAIRS = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2, (24591, 57371): 2,
                      (519935, 462343): 3, (115459, 99075): 3, (63503, 524287): 4, (227, 451): 4, (261951, 523903): 5, (24831, 6159): 5,
                      (465927, 516095): 6, (15111, 29443): 6, (460799, 524287): 7, (24591, 12303): 7, (524287, 462343): 8, (27, 15): 8,

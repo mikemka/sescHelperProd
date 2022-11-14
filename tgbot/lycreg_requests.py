@@ -135,6 +135,16 @@ async def get_week_days(week_shift=0, no_cache=False) -> tuple[list, str, str]:
     return sesc_json.SESC_JSON[f'current_week_days_{week_shift}']
 
 
+# TODO: caching
+async def get_day(day_shift=0, no_cache=False) -> tuple[str, str]:
+    assert day_shift <= 0, 'week_shift must be <= 0'
+    _now = datetime.datetime.now()
+    return (
+        await date_convert((_now - datetime.timedelta(days=-day_shift - 1)).strftime('%Y-%m-%d')),
+        _now.strftime('%d.%m.%Y'),
+    )
+
+
 async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
     async with client.get(f'{sesc_json.SESC_JSON["scole_domain"]}cpt.a') as response:
         assert response.status == 200, '/cpt.a response status is not 200'
@@ -143,9 +153,10 @@ async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
 
 async def solve_captcha(captcha_bytes: bytes) -> str:
     # idk how but it works
-    COLUMNS_PAIRS = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2, (24591, 57371): 2,
-                     (519935, 462343): 3, (115459, 99075): 3, (63503, 524287): 4, (227, 451): 4, (261951, 523903): 5, (24831, 6159): 5,
-                     (465927, 516095): 6, (15111, 29443): 6, (460799, 524287): 7, (24591, 12303): 7, (524287, 462343): 8, (27, 15): 8,
+    COLUMNS_PAIRS = {(524287, 458759): 0, (24579, 49155): 0, (7, 131071): 1, (415, 111): 1, (126983, 258079): 2,
+                     (24591, 57371): 2, (519935, 462343): 3, (115459, 99075): 3, (63503, 524287): 4, (227, 451): 4,
+                     (261951, 523903): 5, (24831, 6159): 5, (465927, 516095): 6, (15111, 29443): 6,
+                     (460799, 524287): 7, (24591, 12303): 7, (524287, 462343): 8, (27, 15): 8,
                      (459207, 459143): 9, (57731, 49347): 9}
     NUM2I = {0: 0, 1: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6, 128: 7, 256: 8, 512: 9, 1024: 10, 2048: 11, 4096: 12,
             8192: 13, 16384: 14, 32768: 15, 65536: 16, 131072: 17, 262144: 18, 524288: 19, 1048576: 20, 2097152: 21,
@@ -287,4 +298,55 @@ async def get_grades(
     return 0, (
         f'<b>Оценки за неделю</b> <i>({_week_start} - {_week_end})</i>{_render}'
         if _render else f'{errors.LYCREG.NO_MARKS_BY_WEEK} <i>({_week_start} - {_week_end})</i>'
+    )
+
+
+async def get_homework(
+    client: aiohttp.ClientSession,
+    user_login: str,
+    user_password: str,
+    day_shift=0,
+) -> tuple[int, str]:
+    _auth = await lycreg_authorise(
+        client=client,
+        user_login=user_login,
+        user_password=user_password,
+    )
+    if _auth.get('error') is not None:
+        return 1, _auth['error']
+    _user_token = _auth['token']
+
+    _journal = await journal_get_raw_request(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    if _journal == 'none':
+        return 1, errors.LYCREG.NO_JOURNAL_ERROR
+    _journal = json.loads(_journal)
+
+    _teachers = await get_teach_list(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    _subjects = await get_subj_list(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    _day_code, _day = await get_day(day_shift if day_shift <= 0 else 0)
+
+    _render = ''
+    for _subject_teacher, _lessons in _journal.items():
+        print(_subject_teacher, _lessons)
+        print()
+        _, _subject, _teacher_login, _marks = *_subject_teacher.split('_'), ''
+        # for _date_code, _lesson in _lessons.items():
+        #     if _date_code != _day_code:
+        #         continue
+                
+    return 0, (
+        f'<b>Домашнее задание</b> <i>({_day})</i>{_render}'
+        if _render else f'{errors.LYCREG.NO_HOMETASK} <i>({_day})</i>'
     )

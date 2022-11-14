@@ -15,6 +15,7 @@ async def admin_help(message: aiogram.types.Message) -> None:
         '\n'
         '/count_users - Количество зарегистрированных пользователей\n'
         '/get_database - Скачать базу данных в формате .sqlite3\n'
+        '/lycreg_captcha - Проверка работоспособности решения капчи\n'
         '/update_cache - Обновление кэша Scole\n'
         '/test_mail <code>[текст сообщения, поддерживается html]</code> - Проверка отображения сообщения\n'
         '<code>/mail [текст сообщения, поддерживается html]</code> - Массовая рассылка сообщений\n',

@@ -49,7 +49,9 @@ class Json:
     @staticmethod  # Отправление запроса ученика
     async def get_json(weekday: int, group: int):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
-            async with session.get(f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=group&{weekday=}&{group=}') as resp:
+            async with session.get(
+                f'https://lyceum.urfu.ru/ucheba/raspisanie-zanjatii?type=11&scheduleType=group&{weekday=}&{group=}'
+            ) as resp:
                 return json.loads(await resp.text())
 
     @staticmethod  # Создание таблицы
@@ -65,7 +67,12 @@ class Json:
         for lesson in info['lessons']:
             ext[lesson["number"] - 1][lesson["subgroup"]] = f'{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}'
         for lesson in info['diffs']:
-            ext[lesson["number"] - 1] = ['', '', '']
+            if lesson["subgroup"] == 0:
+                ext[lesson["number"] - 1][1] = ''
+                ext[lesson["number"] - 1][2] = ''
+            else:
+                ext[lesson["number"] - 1][0] = ''
+            ext[lesson["number"] - 1][lesson["subgroup"]]
             ext[lesson["number"] - 1][lesson["subgroup"]] = f'<i>{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}</i>'
         for i, lesson in enumerate(ext):
             if lesson[0]:

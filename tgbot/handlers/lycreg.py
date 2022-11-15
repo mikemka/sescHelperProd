@@ -156,29 +156,3 @@ async def grades(message: aiogram.types.Message) -> None:
         if not _code:
             return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
         await _msg.edit_text(_text, reply_markup=keyboards.try_again_grades)
-
-
-@dispatcher.dp.message_handler(commands=['homework'])
-async def homework(message: aiogram.types.Message) -> None:
-    _x = bot.user_password.get(message.from_user.id)
-    if not _x:
-        return await message.answer(errors.LYCREG.NO_PASSWORD)
-    _msg = await message.answer(errors.LYCREG.PROCESS)
-    _user_login, _user_password = _x
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_homework(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
-        )
-        if not _code:
-            return await _msg.edit_text(_text)  # , reply_markup=keyboards.grades_prev_next())
-    await _msg.edit_text(_text)  # , reply_markup=keyboards.try_again_grades)
-    # async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-    #     _code, _text = await lycreg_requests.get_grades(
-    #         client=_client,
-    #         user_login=_user_login,
-    #         user_password=_user_password,
-    #     )
-    #     if not _code:
-    #         return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())

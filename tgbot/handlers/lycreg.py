@@ -31,7 +31,7 @@ async def tabel_callback(cb: aiogram.types.CallbackQuery):
 
 @dispatcher.dp.callback_query_handler(filters.Text(startswith='grades'))
 async def grades_callback(cb: aiogram.types.CallbackQuery):
-    #! add hiding buttons
+    # TODO: add hiding buttons
     if bot.user_password.get(cb.from_user.id):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
             _goal_week, _shift = cb.data.split('*')[-1], 0
@@ -55,6 +55,33 @@ async def grades_callback(cb: aiogram.types.CallbackQuery):
     await cb.answer()
 
 
+@dispatcher.dp.callback_query_handler(filters.Text(startswith='homework'))
+async def homework_callback(cb: aiogram.types.CallbackQuery):
+    # TODO: add hiding buttons
+    if bot.user_password.get(cb.from_user.id):
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
+            _goal_day, _shift = cb.data.split('*')[-1], 0
+            if _goal_day:
+                _current = datetime.datetime(*map(int, 
+                    cb.message.html_text[(i := cb.message.html_text.find('(') + 1):i + 10].split('.')[::-1],
+                ))
+                _goal = _current + datetime.timedelta(days=1) * int(_goal_day)
+                _shift = (datetime.datetime.now() - _goal).days
+            _code, _text = await lycreg_requests.get_homework(
+                client=_client,
+                user_login=bot.user_password[cb.from_user.id][0],
+                user_password=bot.user_password[cb.from_user.id][1],
+                day_shift=_shift,
+            )
+            if _code and _text.strip() != cb.message.html_text:
+                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_homework)
+            elif _text.strip() != cb.message.html_text:
+                await cb.message.edit_text(_text, reply_markup=keyboards.homework_prev_next())
+    else:
+        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
+    await cb.answer()
+
+
 @dispatcher.dp.message_handler(filters.Text(equals='🔒 Вход'))
 async def lycreg_call(message: aiogram.types.Message):
     await lycreg(message, ignore_args=True)
@@ -68,6 +95,11 @@ async def tabel_call(message: aiogram.types.Message):
 @dispatcher.dp.message_handler(filters.Text(equals='📖 Оценки'))
 async def grades_call(message: aiogram.types.Message):
     await grades(message)
+
+
+@dispatcher.dp.message_handler(filters.Text(equals='📙 Задания'))
+async def homework_call(message: aiogram.types.Message):
+    await homework(message)
 
 
 @dispatcher.dp.message_handler(commands=['lycreg'])
@@ -147,19 +179,12 @@ async def grades(message: aiogram.types.Message) -> None:
         )
         if not _code:
             return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_grades(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
-        )
-        if not _code:
-            return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
-        await _msg.edit_text(_text, reply_markup=keyboards.try_again_grades)
+    await _msg.edit_text(_text, reply_markup=keyboards.try_again_grades)
 
 
 @dispatcher.dp.message_handler(commands=['homework'])
 async def homework(message: aiogram.types.Message) -> None:
+    # homework command handler
     _x = bot.user_password.get(message.from_user.id)
     if not _x:
         return await message.answer(errors.LYCREG.NO_PASSWORD)
@@ -172,13 +197,5 @@ async def homework(message: aiogram.types.Message) -> None:
             user_password=_user_password,
         )
         if not _code:
-            return await _msg.edit_text(_text)  # , reply_markup=keyboards.grades_prev_next())
-    await _msg.edit_text(_text)  # , reply_markup=keyboards.try_again_grades)
-    # async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-    #     _code, _text = await lycreg_requests.get_grades(
-    #         client=_client,
-    #         user_login=_user_login,
-    #         user_password=_user_password,
-    #     )
-    #     if not _code:
-    #         return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
+            return await _msg.edit_text(_text, reply_markup=keyboards.homework_prev_next())
+    await _msg.edit_text(_text, reply_markup=keyboards.homework_prev_next())

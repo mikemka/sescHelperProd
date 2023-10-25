@@ -4,6 +4,7 @@ import datetime
 import dispatcher
 import errors
 import handlers.keyboards as keyboards
+from bot import user_password
 
 
 @dispatcher.dp.message_handler(commands=["start", "reg"])
@@ -53,15 +54,16 @@ async def help_command(message: aiogram.types.Message):
             '\n'
             '<i>📔 журнал</i>\n'
             '/lycreg - Сохранение пароля\n'
-            '/tabel - Четвертные отметки\n'
-            '/grades - Текущие отметки\n'
+            '/tabel - Четвертные оценки\n'
+            '/grades - Текущие оценки\n'
+            '/homework - Домашние задания\n'
             '\n'
             '<i>🛠 сервис</i>\n'
             '/help - Вызвать данное меню\n'
             '/cancel - Прервать операцию\n'
             '/reg - Повторная регистрация\n'
             '/exit - Удалить аккаунт',
-            reply_markup=keyboards.keyboard_r(),
+            reply_markup=keyboards.keyboard_r(is_autorised=message.from_user.id in user_password),
         )
     await message.bot.send_message(
         message.from_user.id,
@@ -101,21 +103,24 @@ async def lesson_status(message: aiogram.types.Message):
     
     if not bot.BotDB.user_exists(message.from_user.id):
         return await message.bot.send_message(message.from_user.id, errors.SHOULD_REGISTER)
-    if datetime.datetime.today().weekday() == 6:
-        return await message.bot.send_message(message.from_user.id, errors.NO_LESSONS)
     current_time = datetime.datetime.today().minute + datetime.datetime.today().hour * 60
     e = '<b>Уроки уже закончились</b>'
     if current_time <= 915:
         for k, start_lesson in enumerate(
             (540, 580, 590, 630, 645, 685, 700, 740, 755, 795, 815, 855, 875, 915),
-            start=1
+            start=1,
         ):
             if 915 >= current_time < start_lesson:
                 if k % 2:
                     e = f'До начала {k // 2 + 1} урока {convert_time(start_lesson-current_time)}'
                 else:
-                    e = f'<b>Сейчас идет {k // 2} урок</b>\nДо конца урока {convert_time(start_lesson - current_time)}'
+                    e = (
+                        f'<b>Сейчас идет {k // 2} урок</b>\n'
+                        f'До конца урока {convert_time(start_lesson - current_time)}'
+                    )
                 break
+    if datetime.datetime.today().weekday() == 6:
+        e = errors.NO_LESSONS
     await message.bot.send_message(message.from_user.id, e, reply_markup=keyboards.CallScheduleButton.keyboard)
 
 

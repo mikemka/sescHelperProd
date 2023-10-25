@@ -40,8 +40,8 @@ class CallScheduleButton:
     )
 
 
-def keyboard_r():
-    return aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
+def keyboard_r(is_autorised=False):
+    x = aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True).add(
         aiogram.types.KeyboardButton('📅 Расписание'),
     ).add(
         aiogram.types.KeyboardButton('На сегодня'),
@@ -51,12 +51,17 @@ def keyboard_r():
         aiogram.types.KeyboardButton('🕒 Статус текущего урока'),
     ).add(
         aiogram.types.KeyboardButton('📄 Все команды'),
-        aiogram.types.KeyboardButton('📅 Выбрать класс'),
-    ).add(
-        aiogram.types.KeyboardButton('🔒 Вход'),
-        aiogram.types.KeyboardButton('📖 Оценки'),
-        aiogram.types.KeyboardButton('📝 Табель'),
+        aiogram.types.KeyboardButton('📅 Другой класс'),
     )
+    if is_autorised:
+        x.add(
+            aiogram.types.KeyboardButton('📖 Оценки'),
+            aiogram.types.KeyboardButton('📙 Задания'),
+            aiogram.types.KeyboardButton('📝 Табель'),
+        )
+    else:
+        x.add(aiogram.types.KeyboardButton('🔒 Вход'))
+    return x
 
 
 def all_command_buttons(t='allco'):
@@ -98,7 +103,7 @@ class YesNoButtons:
 
 
 def get_forms_keyboard():
-    #! FIXME
+    # FIXME
     json = sesc_json.SESC_JSON['group']
     e, k = 'aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
@@ -108,7 +113,7 @@ def get_forms_keyboard():
 
 
 def get_teachers_keyboard():
-    #! FIXME
+    # FIXME
     json = sesc_json.SESC_JSON['teacher']
     e, k = 'aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(', 1
     for i in json:
@@ -137,14 +142,28 @@ try_again_grades = aiogram.types.InlineKeyboardMarkup().add(
     aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='grades*'),
 )
 
+try_again_homework = aiogram.types.InlineKeyboardMarkup().add(
+    aiogram.types.InlineKeyboardButton('Повторить попытку', callback_data='homework*'),
+)
+
 
 def grades_prev_next():
-    #! add hiding buttons
+    # TODO: add hiding buttons
     return aiogram.types.InlineKeyboardMarkup().add(
         aiogram.types.InlineKeyboardButton('Текущая неделя', callback_data='grades*'),
     ).add(
         aiogram.types.InlineKeyboardButton('«', callback_data='grades*-1'),
         aiogram.types.InlineKeyboardButton('»', callback_data='grades*1'),
+    )
+
+
+def homework_prev_next():
+    # TODO: add hiding buttons
+    return aiogram.types.InlineKeyboardMarkup().add(
+        aiogram.types.InlineKeyboardButton('Сегодня', callback_data='homework*'),
+    ).add(
+        aiogram.types.InlineKeyboardButton('«', callback_data='homework*-1'),
+        aiogram.types.InlineKeyboardButton('»', callback_data='homework*1'),
     )
 
 

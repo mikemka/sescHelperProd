@@ -7,7 +7,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 # Initialise bot & dispatcher
-bot = aiogram.Bot(token=(config.TOKEN), parse_mode='HTML')
+if config.PROXY:
+    bot = aiogram.Bot(token=(config.TOKEN), parse_mode='HTML', proxy=config.PROXY)
+else:
+    bot = aiogram.Bot(token=(config.TOKEN), parse_mode='HTML')
 dp = aiogram.Dispatcher(bot)
 
 # Load filters

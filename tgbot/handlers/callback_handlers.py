@@ -141,12 +141,16 @@ async def process_callback_kb2btn2(message: aiogram.types.CallbackQuery):
         user_status[message.from_user.id] = '?free_date=' + message.data[-1]
         await message.bot.send_message(message.from_user.id, 'Выберите урок\nДля отмены воспользуйтесь /cancel', reply_markup=keyboards.lessons_buttons('lsnfr'))
         await message.answer()
-    else: await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)
+    else:
+        await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)
 
 
 @dp.callback_query_handler(UserStatus('?free_date='), lambda c: c.data and c.data.startswith('lsnfr'))
 async def process_callback_kb1btn1(message: aiogram.types.CallbackQuery):
-    await message.bot.send_message(message.from_user.id, await get_free_auditories(int(user_status[message.from_user.id][-1]), int(message.data[-1])))
+    await message.bot.send_message(
+        message.from_user.id,
+        await get_free_auditories(int(user_status[message.from_user.id][-1]), int(message.data[-1])),
+    )
     await message.answer()
 
 
@@ -160,8 +164,11 @@ async def get_message(message: aiogram.types.Message):
     tmp = translit(message.text.upper(), 'ru')
     if tmp in Json.data["group"]:
         BotDB.add_user(message.from_user.id, tmp)
-        await message.bot.send_message(message.from_user.id, f"""
-<b>Вы были успешно зарегистрированы</b>. Класс - {tmp}""", reply_markup=keyboards.HelpButton.keyboard)
+        await message.bot.send_message(
+            message.from_user.id,
+            f'<b>Вы были успешно зарегистрированы</b>. Класс - {tmp}',
+            reply_markup=keyboards.HelpButton.keyboard,
+        )
         user_status.pop(message.from_user.id, None)
     else:
         await message.reply('Класс не найден! Попробуйте еще раз! Для отмены пропишите команду /cancel')
@@ -181,7 +188,15 @@ async def get_message(message: aiogram.types.Message):
 async def process_callback_kb1btn1(message: aiogram.types.CallbackQuery):
     if 'thcom*' in user_status[message.from_user.id]:
         if BotDB.user_exists(message.from_user.id):
-            await message.bot.send_message(message.from_user.id, await Json.timetable(message.from_user.id, int(message.data[-1]), form=user_status[message.from_user.id][6:]), reply_markup=keyboards.keyboard_r())
+            await message.bot.send_message(
+                message.from_user.id,
+                await Json.timetable(
+                    message.from_user.id,
+                    int(message.data[-1]),
+                    form=user_status[message.from_user.id][6:],
+                ),
+                reply_markup=keyboards.keyboard_r(is_autorised=message.from_user.id in user_password),
+            )
             await message.answer()
         else:
             await message.answer(text='Вы не зарегистрированы!\nВоспользуйтесь /start', show_alert=True)
@@ -206,11 +221,15 @@ async def process_callback_rt_yes01(message: aiogram.types.CallbackQuery):
         BotDB.add_teacher(message.from_user.id, user_status[message.from_user.id][3:])
         await message.bot.send_message(message.from_user.id, '<b>Вы успешно вошли в систему!</b>',
                                        reply_markup=keyboards.HelpButton.keyboard); await message.answer()
-    else: await message.answer(text='Произошла ошибка!\nВоспользуйтесь /start вновь', show_alert=True)
+    else:
+        await message.answer(text='Произошла ошибка!\nВоспользуйтесь /start вновь', show_alert=True)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'rt_yes02')
 async def process_callback_rt_yes02(message: aiogram.types.CallbackQuery):
     user_status[message.from_user.id] = 'start > 02'
-    await message.bot.send_message(message.from_user.id, '''<b>Попробуйте еще раз</b>
-Для отмены операции пропишите /cancel'''); await message.answer()
+    await message.bot.send_message(
+        message.from_user.id,
+        '<b>Попробуйте еще раз</b>\nДля отмены операции пропишите /cancel',
+    )
+    await message.answer()

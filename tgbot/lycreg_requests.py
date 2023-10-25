@@ -77,8 +77,11 @@ async def lycreg_authorise(client: aiohttp.ClientSession, user_login: str, user_
 
 
 # cached
-async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False):
-    # return cache (3 days)
+async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False) -> dict:
+    """
+    Возвращает словарь, где ключ - код предмета, а значение - полное название
+    Cached: 3 days
+    """
     _x = sesc_json.SESC_JSON.get('subject_list')
     if _x is not None and not no_cache and time.time() - sesc_json.SESC_JSON.get('^cache_subj_list', 0) < 259200:
         return sesc_json.SESC_JSON['default_subjects'] | _x
@@ -91,8 +94,11 @@ async def get_subj_list(client: aiohttp.ClientSession, user_login: str, user_tok
 
 
 # cached
-async def get_teach_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False):
-    # return cache (3 days)
+async def get_teach_list(client: aiohttp.ClientSession, user_login: str, user_token: str, no_cache=False) -> dict:
+    """
+    Возвращает словарь, где ключ - логин, а значение - ФИО преподавателя
+    Cached: 3 days
+    """
     _x = sesc_json.SESC_JSON.get('teach_list')
     if _x is not None and not no_cache and time.time() - sesc_json.SESC_JSON.get('^cache_teach_list', 0) < 259200:
         return _x
@@ -133,6 +139,14 @@ async def get_week_days(week_shift=0, no_cache=False) -> tuple[list, str, str]:
         (_now + datetime.timedelta(days=6 - _now.weekday())).strftime('%d.%m.%Y'),
     )
     return sesc_json.SESC_JSON[f'current_week_days_{week_shift}']
+
+
+async def get_day(day_shift=0) -> tuple[str, str]:
+    _now = datetime.datetime.now()
+    return (
+        await date_convert((_now - datetime.timedelta(days=-day_shift - 1)).strftime('%Y-%m-%d')),
+        (_now - datetime.timedelta(day_shift)).strftime('%d.%m.%Y'),
+    )
 
 
 async def fetch_captcha(client: aiohttp.ClientSession) -> tuple[bytes, int]:
@@ -288,4 +302,61 @@ async def get_grades(
     return 0, (
         f'<b>Оценки за неделю</b> <i>({_week_start} - {_week_end})</i>{_render}'
         if _render else f'{errors.LYCREG.NO_MARKS_BY_WEEK} <i>({_week_start} - {_week_end})</i>'
+    )
+
+
+async def get_homework(
+    client: aiohttp.ClientSession,
+    user_login: str,
+    user_password: str,
+    day_shift=0,
+) -> tuple[int, str]:
+    _auth = await lycreg_authorise(
+        client=client,
+        user_login=user_login,
+        user_password=user_password,
+    )
+    if _auth.get('error') is not None:
+        return 1, _auth['error']
+    _user_token = _auth['token']
+
+    _journal = await journal_get_raw_request(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    if _journal == 'none':
+        return 1, errors.LYCREG.NO_JOURNAL_ERROR
+    _journal = json.loads(_journal)
+
+    teachers = await get_teach_list(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    subjects = await get_subj_list(
+        client=client,
+        user_login=user_login,
+        user_token=_user_token,
+    )
+    _day_code, _day = await get_day(day_shift)
+    _render = ''
+    for _subject_teacher, _lessons in _journal.items():
+        _class, _subject, _teacher_login = _subject_teacher.split('_')
+        _class = _class.split('-')
+        list_subject_name = (
+            f'{subjects[_subject]}{"-" + _class[1] if len(_class) > 1 else ""}'
+            if _subject in subjects else
+            (
+                _class[1]
+                if len(_class) > 1 else
+                teachers.get(_teacher_login)
+            )
+        )
+        x = '\n'.join([f'<code>{_lessons[i][1]}</code>' for i in _lessons if i == _day_code and _lessons[i][1]])
+        if x:
+            _render += f'<u>{list_subject_name}</u>\n{x}\n\n'
+    return 0, (
+        f'📙 <b>Домашнее задание</b> <i>({_day})</i>\n\n{_render}'
+        if _render else f'{errors.LYCREG.NO_HOMETASK} <i>({_day})</i>'
     )

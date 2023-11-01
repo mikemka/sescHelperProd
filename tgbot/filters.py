@@ -19,6 +19,7 @@ class Timeout(Filter):
 
 
 class UserStatus(BoundFilter):
+    # FIXME: old
     key = "check_by"
 
     def __init__(self, check_by):

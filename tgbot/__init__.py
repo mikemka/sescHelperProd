@@ -1,2 +1,5 @@
 user_status = {}
-user_password = {}
+# FIXME
+user_password = {
+    688003991: ('ivchenko2', 'bleblazvopsa95')
+}

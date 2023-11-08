@@ -23,6 +23,15 @@ async def authorise_raw_request(
 
 
 async def tabel_get_raw_request(client: aiohttp.ClientSession, user_login: str, user_token: str) -> str:
+    """
+    let apiResp = await apireq("tabelGet", [pupil.split('^')[0]]);
+    let apireq = async(f, z) => {
+        let body = {t: uCateg, l: uLogin, p: uToken, f: f};
+        if (z) body.z = z;
+        let opt = {method: "POST", cache: "no-cache", body: JSON.stringify(body)};
+        return await (await fetch("/", opt)).text()
+    };
+    """
     async with client.post(
         sesc_json.SESC_JSON['scole_domain'],
         data=f'{{"t":"pupil","l":"{user_login}","p":"{user_token}","f":"tabelGet","z":["{user_login}"]}}',
@@ -226,10 +235,9 @@ async def get_tabel(client: aiohttp.ClientSession, user_login: str, user_passwor
         user_login=user_login,
         user_token=_user_token,
     )
-    if _tabel == 'none':
+    print(_tabel)
+    if _tabel in ('none', '{}'):
         return 1, errors.LYCREG.SERVER_ERROR
-    if not len(_tabel):
-        return 1, errors.LYCREG.NO_TABEL_ERROR
     _tabel, _ids, _render = json.loads(_tabel), sesc_json.SESC_JSON.get('dtsit').items(), ''
     if not period:
         period = set()

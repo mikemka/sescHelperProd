@@ -103,6 +103,10 @@ async def with_puree9(message: aiogram.types.Message): await lesson_status(messa
 async def with_puree10(message: aiogram.types.Message): await timetable_mi(message)
 
 
+@dp.message_handler(Text(equals='📅 Другой класс'))
+async def wtf(message: aiogram.types.Message): await thcom(message)
+
+
 @dp.callback_query_handler(lambda c: c.data and c.data.startswith('help_'))
 async def process_callback_kb5btn5(message: aiogram.types.CallbackQuery):
     code = message.data[-2:]

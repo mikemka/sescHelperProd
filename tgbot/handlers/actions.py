@@ -1,3 +1,4 @@
+from aiogram.dispatcher.filters import Text
 import aiogram.types
 import bot
 import datetime

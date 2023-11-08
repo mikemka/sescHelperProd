@@ -15,14 +15,11 @@ if DOTENV_PATH.exists():
 
 ADMIN_IDS = ast.literal_eval(os.getenv('ADMIN_IDS', '[688003991]'))
 
+DEBUG = ast.literal_eval(os.getenv('DEBUG', 'False'))
+
+TOKEN = os.getenv('DEBUG_TOKEN' if DEBUG else 'TOKEN')
+
 try:
     PROXY = ast.literal_eval(os.getenv('PROXY'))
 except Exception:
     PROXY = os.getenv('PROXY')
-
-DEBUG = ast.literal_eval(os.getenv('DEBUG'))
-
-TOKEN = os.getenv('TOKEN')
-
-if DEBUG:
-    TOKEN = os.getenv('DEBUG_TOKEN')

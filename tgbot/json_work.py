@@ -21,7 +21,7 @@ class Json:
         if weekday:
             if form:
                 return (
-                    f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {form}\n'
+                    f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - <code>{form}</code>\n'
                     f'{"━" * 15}\n'
                     f'{await self.create_table(await self.get_json(weekday, int(self.data["group"][form])))}'
                 )
@@ -34,7 +34,7 @@ class Json:
             tmp = BotDB.get_user_form(user_id)
             user_form = self.data["group"][tmp]
             return (
-                f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - {tmp}\n'
+                f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - <code>{tmp}</code>\n'
                 f'{"━" * 15}\n'
                 f'{await self.create_table(await self.get_json(weekday, int(user_form)))}'
             )
@@ -80,10 +80,10 @@ class Json:
             elif lesson[1] and lesson[2]:
                 e_str[i] = f'{lesson[1]} ┃ {lesson[2]}'
             elif lesson[1]:
-                e_str[i] = f'{lesson[1]} ┃  ✕'
+                e_str[i] = f'{lesson[1]} ┃ ✕'
             elif lesson[2]:
-                e_str[i] = f' ✕  ┃ {lesson[2]}'
-        return '\n'.join([f'<b>{i + 1}┃</b> {lesson}' for i, lesson in enumerate(e_str)])
+                e_str[i] = f' ✕ ┃ {lesson[2]}'
+        return '\n'.join([f'<code>{i + 1}</code>┃ {lesson}' for i, lesson in enumerate(e_str)])
 
 
 async def get_weekday(_day: int):

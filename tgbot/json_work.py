@@ -65,7 +65,9 @@ class Json:
         
         ext, e_str = [['', '', ''] for _ in range(7)], ['' for _ in range(7)]
         for lesson in info['lessons']:
-            ext[lesson["number"] - 1][lesson["subgroup"]] = f'{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}'
+            ext[lesson["number"] - 1][lesson["subgroup"]] = (
+                f'{lesson["subject"][:10]}`<code>{auditory_converter(lesson["auditory"][:8])}</code>'
+            )
         for lesson in info['diffs']:
             if lesson["subgroup"] == 0:
                 ext[lesson["number"] - 1][1] = ''
@@ -73,7 +75,9 @@ class Json:
             else:
                 ext[lesson["number"] - 1][0] = ''
             ext[lesson["number"] - 1][lesson["subgroup"]]
-            ext[lesson["number"] - 1][lesson["subgroup"]] = f'<i>{lesson["subject"][:10]}`{auditory_converter(lesson["auditory"][:8])}</i>'
+            ext[lesson["number"] - 1][lesson["subgroup"]] = (
+                f'<i>{lesson["subject"][:10]}`</i><code>{auditory_converter(lesson["auditory"][:8])}</code>'
+            )
         for i, lesson in enumerate(ext):
             if lesson[0]:
                 e_str[i] = lesson[0]
@@ -108,7 +112,7 @@ async def get_timetable_8ami(date: int):
                     if k % 4 == 1:
                         ext[k // 4] += tmp
                     elif k % 4 == 3:
-                        ext[k // 4] += f'`{tmp}'
+                        ext[k // 4] += f'`<code>{tmp}</code>'
                     k += 1
                 tmp = ''
             elif i != '\n':

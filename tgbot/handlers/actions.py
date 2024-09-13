@@ -162,13 +162,13 @@ async def call_schedule(message: aiogram.types.Message):
         message.from_user.id,
         '<b>Расписание звонков</b>\n'
         '\n'
-        '<b>1┃</b> <code>9:00   9:40</code>\n'
-        '<b>2┃</b> <code>9:50   10:30</code>\n'
-        '<b>3┃</b> <code>10:45  11:25</code>\n'
-        '<b>4┃</b> <code>11:40  12:20</code>\n'
-        '<b>5┃</b> <code>12:35  13:15</code>\n'
-        '<b>6┃</b> <code>13:35  14:15</code>\n'
-        '<b>7┃</b> <code>14:35  15:15</code>'
+        '<code>1</code>┃ <code>9:00   9:40</code>\n'
+        '<code>2</code>┃ <code>9:50   10:30</code>\n'
+        '<code>3</code>┃ <code>10:45  11:25</code>\n'
+        '<code>4</code>┃ <code>11:40  12:20</code>\n'
+        '<code>5</code>┃ <code>12:35  13:15</code>\n'
+        '<code>6</code>┃ <code>13:35  14:15</code>\n'
+        '<code>7</code>┃ <code>14:35  15:15</code>'
     )
 
 

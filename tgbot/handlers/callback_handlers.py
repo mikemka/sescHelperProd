@@ -95,7 +95,7 @@ async def with_puree7(message: aiogram.types.Message): await today(message)
 async def with_puree8(message: aiogram.types.Message): await next_day(message)
 
 
-@dp.message_handler(Text(contains='Статус текущего урока'))
+@dp.message_handler(Text(contains='🕒 Уроки'))
 async def with_puree9(message: aiogram.types.Message): await lesson_status(message)
 
 

@@ -46,9 +46,9 @@ def keyboard_r(is_autorised=False):
     ).add(
         aiogram.types.KeyboardButton('На сегодня'),
         aiogram.types.KeyboardButton('На завтра'),
-        aiogram.types.KeyboardButton('8А-МИ'),
-    ).add(
-        aiogram.types.KeyboardButton('🕒 Статус текущего урока'),
+        aiogram.types.KeyboardButton('🕒 Уроки'),
+    # ).add(
+    #     aiogram.types.KeyboardButton('8А-МИ'),
     ).add(
         aiogram.types.KeyboardButton('📄 Все команды'),
         aiogram.types.KeyboardButton('📅 Другой класс'),

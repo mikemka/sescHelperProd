@@ -1,9 +1,12 @@
-venv
-env
-__pycache__
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
 .DS_Store
 .env
 *.db
-.vscode
-.idea
+.vscode/
+.idea/
 ignore*.*
+migrations/

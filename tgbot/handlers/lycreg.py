@@ -1,136 +1,167 @@
-import aiogram.dispatcher.filters as filters
-import aiogram.types
-import aiohttp
-import bot
+from __future__ import annotations
+
 import datetime
-import dispatcher
-import errors
-import handlers.keyboards as keyboards
-import lycreg_requests
 import string
 
+import aiohttp
+from aiogram import F, Router
+from aiogram.filters import Command
+from aiogram.types import CallbackQuery, Message
 
-@dispatcher.dp.callback_query_handler(filters.Text(startswith='tabel'))
-async def tabel_callback(cb: aiogram.types.CallbackQuery):
-    if bot.user_password.get(cb.from_user.id):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-            _code, _text = await lycreg_requests.get_tabel(
-                client=_client,
-                user_login=bot.user_password[cb.from_user.id][0],
-                user_password=bot.user_password[cb.from_user.id][1],
-                period=cb.data.split('*')[1],
-            )
-            if _code and _text.strip() != cb.message.html_text:
-                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_tabel)
-            elif _text.strip() != cb.message.html_text:
-                await cb.message.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
-    else:
-        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
+import tgbot.errors as errors
+import tgbot.lycreg_requests as lycreg_requests
+from tgbot.db.models import UserCredentials
+from tgbot.handlers import keyboards
+
+router = Router(name=__name__)
+
+
+async def _get_creds(tg_id: int):
+    cred = await UserCredentials.get_or_none(tg_id=tg_id)
+    if cred:
+        return cred.lycreg_login, cred.lycreg_password
+    return None
+
+
+# ── callbacks ──────────────────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith('tabel'))
+async def tabel_callback(cb: CallbackQuery) -> None:
+    creds = await _get_creds(cb.from_user.id)
+    if not creds:
+        await cb.message.answer(errors.LYCREG.NO_PASSWORD)
+        await cb.answer()
+        return
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        code, text = await lycreg_requests.get_tabel(
+            client=client,
+            user_login=creds[0],
+            user_password=creds[1],
+            period=cb.data.split('*')[1],
+        )
+        if code and text.strip() != cb.message.html_text:
+            await cb.message.answer(text, reply_markup=keyboards.try_again_tabel)
+        elif text.strip() != cb.message.html_text:
+            await cb.message.edit_text(text, reply_markup=keyboards.choose_tabel_period)
     await cb.answer()
 
 
-@dispatcher.dp.callback_query_handler(filters.Text(startswith='grades'))
-async def grades_callback(cb: aiogram.types.CallbackQuery):
-    # TODO: add hiding buttons
-    if bot.user_password.get(cb.from_user.id):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-            _goal_week, _shift = cb.data.split('*')[-1], 0
-            if _goal_week:
-                _current = cb.message.html_text[(i := cb.message.html_text.find('(') + 1):i + 11].split('.')[::-1]
-                _delta = datetime.timedelta(days=7)
-                _goal = datetime.datetime(*map(int, _current)) + (_delta if _goal_week == '1' else -_delta)
-                _shift = (datetime.datetime.now() - _goal).days // 7
-            _code, _text = await lycreg_requests.get_grades(
-                client=_client,
-                user_login=bot.user_password[cb.from_user.id][0],
-                user_password=bot.user_password[cb.from_user.id][1],
-                week_shift=-_shift,
-            )
-            if _code and _text.strip() != cb.message.html_text:
-                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_grades)
-            elif _text.strip() != cb.message.html_text:
-                await cb.message.edit_text(_text, reply_markup=keyboards.grades_prev_next())
-    else:
-        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
+@router.callback_query(F.data.startswith('grades'))
+async def grades_callback(cb: CallbackQuery) -> None:
+    creds = await _get_creds(cb.from_user.id)
+    if not creds:
+        await cb.message.answer(errors.LYCREG.NO_PASSWORD)
+        await cb.answer()
+        return
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        goal_week, shift = cb.data.split('*')[-1], 0
+        if goal_week:
+            text = cb.message.html_text
+            i = text.find('(') + 1
+            current = text[i:i + 11].split('.')[::-1]
+            delta = datetime.timedelta(days=7)
+            goal = datetime.datetime(*map(int, current)) + (delta if goal_week == '1' else -delta)
+            shift = (datetime.datetime.now() - goal).days // 7
+        code, text = await lycreg_requests.get_grades(
+            client=client,
+            user_login=creds[0],
+            user_password=creds[1],
+            week_shift=-shift,
+        )
+        if code and text.strip() != cb.message.html_text:
+            await cb.message.answer(text, reply_markup=keyboards.try_again_grades)
+        elif text.strip() != cb.message.html_text:
+            await cb.message.edit_text(text, reply_markup=keyboards.grades_prev_next())
     await cb.answer()
 
 
-@dispatcher.dp.callback_query_handler(filters.Text(startswith='homework'))
-async def homework_callback(cb: aiogram.types.CallbackQuery):
-    # TODO: add hiding buttons
-    if bot.user_password.get(cb.from_user.id):
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-            _goal_day, _shift = cb.data.split('*')[-1], 0
-            if _goal_day:
-                _current = datetime.datetime(*map(int, 
-                    cb.message.html_text[(i := cb.message.html_text.find('(') + 1):i + 10].split('.')[::-1],
-                ))
-                _goal = _current + datetime.timedelta(days=1) * int(_goal_day)
-                _shift = (datetime.datetime.now() - _goal).days
-            _code, _text = await lycreg_requests.get_homework(
-                client=_client,
-                user_login=bot.user_password[cb.from_user.id][0],
-                user_password=bot.user_password[cb.from_user.id][1],
-                day_shift=_shift,
-            )
-            if _code and _text.strip() != cb.message.html_text:
-                await cb.bot.send_message(cb.from_user.id, _text, reply_markup=keyboards.try_again_homework)
-            elif _text.strip() != cb.message.html_text:
-                await cb.message.edit_text(_text, reply_markup=keyboards.homework_prev_next())
-    else:
-        await cb.bot.send_message(cb.from_user.id, errors.LYCREG.NO_PASSWORD)
+@router.callback_query(F.data.startswith('homework'))
+async def homework_callback(cb: CallbackQuery) -> None:
+    creds = await _get_creds(cb.from_user.id)
+    if not creds:
+        await cb.message.answer(errors.LYCREG.NO_PASSWORD)
+        await cb.answer()
+        return
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        goal_day, shift = cb.data.split('*')[-1], 0
+        if goal_day:
+            text = cb.message.html_text
+            i = text.find('(') + 1
+            current = datetime.datetime(*map(int, text[i:i + 10].split('.')[::-1]))
+            goal = current + datetime.timedelta(days=1) * int(goal_day)
+            shift = (datetime.datetime.now() - goal).days
+        code, text = await lycreg_requests.get_homework(
+            client=client,
+            user_login=creds[0],
+            user_password=creds[1],
+            day_shift=shift,
+        )
+        if code and text.strip() != cb.message.html_text:
+            await cb.message.answer(text, reply_markup=keyboards.try_again_homework)
+        elif text.strip() != cb.message.html_text:
+            await cb.message.edit_text(text, reply_markup=keyboards.homework_prev_next())
     await cb.answer()
 
 
-@dispatcher.dp.message_handler(filters.Text(equals='🔒 Вход'))
-async def lycreg_call(message: aiogram.types.Message):
+# ── button aliases ─────────────────────────────────────────────────────────────
+
+@router.message(F.text == '🔒 Вход')
+async def lycreg_btn(message: Message) -> None:
     await lycreg(message, ignore_args=True)
 
 
-@dispatcher.dp.message_handler(filters.Text(equals='📝 Табель'))
-async def tabel_call(message: aiogram.types.Message):
+@router.message(F.text == '📝 Табель')
+async def tabel_btn(message: Message) -> None:
     await tabel(message)
 
 
-@dispatcher.dp.message_handler(filters.Text(equals='📖 Оценки'))
-async def grades_call(message: aiogram.types.Message):
+@router.message(F.text == '📖 Оценки')
+async def grades_btn(message: Message) -> None:
     await grades(message)
 
 
-@dispatcher.dp.message_handler(filters.Text(equals='📙 Задания'))
-async def homework_call(message: aiogram.types.Message):
+@router.message(F.text == '📙 Задания')
+async def homework_btn(message: Message) -> None:
     await homework(message)
 
 
-@dispatcher.dp.message_handler(commands=['lycreg'])
-async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
-    _args = []
-    if not ignore_args:
-        _args = message.get_args().split()
-    _x = bot.user_password.get(message.from_user.id)
-    if len(_args) < 2:
-        if _x:
-            return await message.answer(
-                f'<b>Вы уже сохранили свой пароль</b> (<tg-spoiler>{"/".join(_x)}</tg-spoiler>)\n'
+# ── commands ───────────────────────────────────────────────────────────────────
+
+@router.message(Command('lycreg'))
+async def lycreg(message: Message, ignore_args: bool = False) -> None:
+    args = [] if ignore_args else (message.text or '').split()[1:]
+    creds = await _get_creds(message.from_user.id)
+
+    if len(args) < 2:
+        if creds:
+            await message.answer(
+                f'<b>Вы уже сохранили свой пароль</b> (<tg-spoiler>{"/".join(creds)}</tg-spoiler>)\n'
                 '\n'
                 'Для смены пароля, введите команду в формате: <code>/lycreg [логин] [пароль]</code>',
                 reply_markup=keyboards.lycreg_password_n_help,
             )
-        return await message.answer(
+            return
+        await message.answer(
             '<b>Вход в электронный журнал «Шкала».</b>\n'
             '\n'
             'Введите команду в формате: <code>/lycreg [логин] [пароль]</code>',
             reply_markup=keyboards.how_we_use_password,
         )
-    _user_login, _user_password, *_ = _args
-    _user_login = ''.join((i for i in _user_login if i in string.ascii_letters or i in string.digits))
-    _user_password = ''.join((i for i in _user_password if i in string.ascii_letters or i in string.digits))
-    bot.user_password[message.from_user.id] = _user_login, _user_password
+        return
+
+    user_login, user_pwd, *_ = args
+    user_login = ''.join(c for c in user_login if c in string.ascii_letters or c in string.digits)
+    user_pwd = ''.join(c for c in user_pwd if c in string.ascii_letters or c in string.digits)
+
+    await UserCredentials.update_or_create(
+        tg_id=message.from_user.id,
+        defaults={'lycreg_login': user_login, 'lycreg_password': user_pwd},
+    )
     await message.answer(
         '<b>Вы успешно сохранили пароль.</b> Мы сохраним ваши данные до следующей перезагрузки бота.\n'
         '\n'
-        f'Логин: <tg-spoiler>{_user_login}</tg-spoiler>,\n'
-        f'Пароль: <tg-spoiler>{_user_password}</tg-spoiler>.\n'
+        f'Логин: <tg-spoiler>{user_login}</tg-spoiler>,\n'
+        f'Пароль: <tg-spoiler>{user_pwd}</tg-spoiler>.\n'
         '\n'
         'Для его смены, используйте команду /lycreg повторно.',
         reply_markup=keyboards.lycreg_password_n_help,
@@ -138,64 +169,54 @@ async def lycreg(message: aiogram.types.Message, ignore_args=False) -> None:
     await message.delete()
 
 
-@dispatcher.dp.message_handler(commands=['tabel'])
-async def tabel(message: aiogram.types.Message) -> None:
-    _x = bot.user_password.get(message.from_user.id)
-    if not _x:
-        return await message.answer(errors.LYCREG.NO_PASSWORD)
-    _msg = await message.answer(errors.LYCREG.PROCESS)
-    _user_login, _user_password = _x
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_tabel(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
+@router.message(Command('tabel'))
+async def tabel(message: Message) -> None:
+    creds = await _get_creds(message.from_user.id)
+    if not creds:
+        await message.answer(errors.LYCREG.NO_PASSWORD)
+        return
+    msg = await message.answer(errors.LYCREG.PROCESS)
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        code, text = await lycreg_requests.get_tabel(
+            client=client, user_login=creds[0], user_password=creds[1],
         )
-        if not _code:
-            return await _msg.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_tabel(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
+    if not code:
+        await msg.edit_text(text, reply_markup=keyboards.choose_tabel_period)
+        return
+    # retry once
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        code, text = await lycreg_requests.get_tabel(
+            client=client, user_login=creds[0], user_password=creds[1],
         )
-        if not _code:
-            return await _msg.edit_text(_text, reply_markup=keyboards.choose_tabel_period)
-        await _msg.edit_text(_text, reply_markup=keyboards.try_again_tabel)
+    markup = keyboards.choose_tabel_period if not code else keyboards.try_again_tabel
+    await msg.edit_text(text, reply_markup=markup)
 
 
-@dispatcher.dp.message_handler(commands=['grades'])
-async def grades(message: aiogram.types.Message) -> None:
-    _x = bot.user_password.get(message.from_user.id)
-    if not _x:
-        return await message.answer(errors.LYCREG.NO_PASSWORD)
-    _msg = await message.answer(errors.LYCREG.PROCESS)
-    _user_login, _user_password = _x
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_grades(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
+@router.message(Command('grades'))
+async def grades(message: Message) -> None:
+    creds = await _get_creds(message.from_user.id)
+    if not creds:
+        await message.answer(errors.LYCREG.NO_PASSWORD)
+        return
+    msg = await message.answer(errors.LYCREG.PROCESS)
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        code, text = await lycreg_requests.get_grades(
+            client=client, user_login=creds[0], user_password=creds[1],
         )
-        if not _code:
-            return await _msg.edit_text(_text, reply_markup=keyboards.grades_prev_next())
-    await _msg.edit_text(_text, reply_markup=keyboards.try_again_grades)
+    markup = keyboards.grades_prev_next() if not code else keyboards.try_again_grades
+    await msg.edit_text(text, reply_markup=markup)
 
 
-@dispatcher.dp.message_handler(commands=['homework'])
-async def homework(message: aiogram.types.Message) -> None:
-    # homework command handler
-    _x = bot.user_password.get(message.from_user.id)
-    if not _x:
-        return await message.answer(errors.LYCREG.NO_PASSWORD)
-    _msg = await message.answer(errors.LYCREG.PROCESS)
-    _user_login, _user_password = _x
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as _client:
-        _code, _text = await lycreg_requests.get_homework(
-            client=_client,
-            user_login=_user_login,
-            user_password=_user_password,
+@router.message(Command('homework'))
+async def homework(message: Message) -> None:
+    creds = await _get_creds(message.from_user.id)
+    if not creds:
+        await message.answer(errors.LYCREG.NO_PASSWORD)
+        return
+    msg = await message.answer(errors.LYCREG.PROCESS)
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as client:
+        code, text = await lycreg_requests.get_homework(
+            client=client, user_login=creds[0], user_password=creds[1],
         )
-        if not _code:
-            return await _msg.edit_text(_text, reply_markup=keyboards.homework_prev_next())
-    await _msg.edit_text(_text, reply_markup=keyboards.homework_prev_next())
+    markup = keyboards.homework_prev_next() if not code else keyboards.try_again_homework
+    await msg.edit_text(text, reply_markup=markup)

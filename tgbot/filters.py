@@ -1,29 +1,23 @@
-from aiogram import types
-from aiogram.dispatcher.filters import Filter, BoundFilter
-import config
-from __init__ import user_status
+from __future__ import annotations
+
+from typing import Union
+
+from aiogram.filters import Filter
+from aiogram.types import CallbackQuery, Message
+
+from tgbot.config import settings
+from tgbot.redis_client import get_user_status
 
 
-class IsOwnerFilter(BoundFilter):
-    key = "is_owner"
-
-    async def check(self, message: types.Message):
-        return message.from_user.id in config.ADMIN_IDS
+class IsAdminFilter(Filter):
+    async def __call__(self, event: Union[Message, CallbackQuery]) -> bool:
+        return event.from_user.id in settings.ADMIN_IDS
 
 
-class Timeout(Filter):
-    key = "timeout"
-
-    async def check(self, message: types.Message):
-        return True
-
-
-class UserStatus(BoundFilter):
-    # FIXME: old
-    key = "check_by"
-
-    def __init__(self, check_by):
+class UserStatusFilter(Filter):
+    def __init__(self, check_by: str) -> None:
         self.check_by = check_by
 
-    async def check(self, message: types.Message):
-        return self.check_by in user_status.setdefault(message.from_user.id, 'None')
+    async def __call__(self, event: Union[Message, CallbackQuery]) -> bool:
+        status = await get_user_status(event.from_user.id)
+        return self.check_by in status

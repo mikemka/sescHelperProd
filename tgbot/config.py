@@ -1,25 +1,29 @@
-import ast
-import dotenv
-import os
-import pathlib
+from __future__ import annotations
+
+from typing import List
+from pydantic_settings import BaseSettings
 
 
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+class Settings(BaseSettings):
+    TOKEN: str
+    DEBUG: bool = False
+    ADMIN_IDS: List[int] = [688003991]
+    ADMIN_GROUP_ID: int = 0
 
-DATABASE_FILE_PATH = BASE_DIR / 'database.db'
+    DB_HOST: str = "db"
+    DB_PORT: int = 5432
+    DB_NAME: str = "sesc_bot"
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
 
-DOTENV_PATH = BASE_DIR / '.env'
+    REDIS_URL: str = "redis://redis:6379"
+    PROXY: str = ""  # http://user:pass@ip:port
 
-if DOTENV_PATH.exists():
-    dotenv.load_dotenv(DOTENV_PATH)
+    @property
+    def DATABASE_URL(self) -> str:
+        return f"postgres://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-ADMIN_IDS = ast.literal_eval(os.getenv('ADMIN_IDS', '[688003991]'))
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
-DEBUG = ast.literal_eval(os.getenv('DEBUG', 'False'))
 
-TOKEN = os.getenv('DEBUG_TOKEN' if DEBUG else 'TOKEN')
-
-try:
-    PROXY = ast.literal_eval(os.getenv('PROXY'))
-except Exception:
-    PROXY = os.getenv('PROXY')
+settings = Settings()

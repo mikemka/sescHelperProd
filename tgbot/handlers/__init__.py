@@ -1,12 +1,6 @@
-import handlers.actions
-import handlers.admin
-import handlers.callback_handlers
-import handlers.lycreg
+from tgbot.handlers.actions import router as actions_router
+from tgbot.handlers.admin import router as admin_router
+from tgbot.handlers.callbacks import router as callbacks_router
+from tgbot.handlers.lycreg import router as lycreg_router
 
-
-if __name__ == "__main__":
-    # ping pseudo-unused imports
-    handlers.actions
-    handlers.admin
-    handlers.callback_handlers
-    handlers.lycreg
+__all__ = ['actions_router', 'admin_router', 'callbacks_router', 'lycreg_router']

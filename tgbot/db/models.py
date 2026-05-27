@@ -30,16 +30,3 @@ class UserCredentials(Model):
 
     class Meta:
         table = "user_credentials"
-
-
-class UserLog(Model):
-    id = fields.IntField(pk=True)
-    tg_id = fields.BigIntField()
-    tg_username = fields.CharField(max_length=255, null=True)
-    tg_first_name = fields.CharField(max_length=255, null=True)
-    log_type = fields.CharField(max_length=20)  # 'message' | 'callback'
-    text = fields.TextField(null=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-
-    class Meta:
-        table = "user_logs"

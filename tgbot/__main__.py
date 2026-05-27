@@ -12,7 +12,6 @@ from tortoise import Tortoise
 from tgbot.config import settings
 from tgbot.db import TORTOISE_ORM
 from tgbot.handlers import actions_router, admin_router, callbacks_router, lycreg_router
-from tgbot.middlewares import LoggingMiddleware
 from tgbot.redis_client import close_redis, init_redis
 
 logging.basicConfig(level=logging.DEBUG if settings.DEBUG else logging.INFO)
@@ -36,9 +35,6 @@ def build_dispatcher() -> Dispatcher:
 
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
-
-    dp.message.middleware(LoggingMiddleware())
-    dp.callback_query.middleware(LoggingMiddleware())
 
     # admin router first — filtered by ADMIN_GROUP_ID inside the router
     dp.include_router(admin_router)

@@ -10,7 +10,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 from tgbot.config import settings
-from tgbot.db.models import User, UserLog
+from tgbot.db.models import User
 from tgbot.handlers.keyboards import mailing_keyboard
 import tgbot.lycreg_requests as lycreg_requests
 from tgbot.redis_client import set_cache, get_cache
@@ -36,7 +36,6 @@ async def admin_help(message: Message) -> None:
         '/block — Заблокировать пользователя\n'
         '/unblock — Разблокировать пользователя\n'
         '\n'
-        '/logs — Последние сообщения пользователей\n'
         '/lycreg_captcha — Проверка решения капчи\n'
         '/update_cache — Обновление кэша Scole\n',
     )
@@ -86,8 +85,6 @@ async def stats(message: Message) -> None:
     dau = await User.filter(last_active_at__gte=now - timedelta(hours=24)).count()
     wau = await User.filter(last_active_at__gte=now - timedelta(days=7)).count()
     mau = await User.filter(last_active_at__gte=now - timedelta(days=30)).count()
-    total_logs = await UserLog.all().count()
-    logs_today = await UserLog.filter(created_at__gte=now.replace(hour=0, minute=0, second=0)).count()
     await message.answer(
         '<b>📊 Статистика пользователей</b>\n'
         '\n'
@@ -101,10 +98,6 @@ async def stats(message: Message) -> None:
         f'За 24 часа (DAU): <b>{dau}</b>\n'
         f'За 7 дней (WAU): <b>{wau}</b>\n'
         f'За 30 дней (MAU): <b>{mau}</b>\n'
-        '\n'
-        '<i>💬 Логи</i>\n'
-        f'Сообщений сегодня: <b>{logs_today}</b>\n'
-        f'Сообщений всего: <b>{total_logs}</b>\n'
     )
 
 
@@ -207,49 +200,6 @@ async def mail_cancel(cb: CallbackQuery) -> None:
     await cb.message.answer('Рассылка отменена')
     await cb.answer()
 
-
-@router.message(Command('logs'))
-async def user_logs(message: Message, command: CommandObject) -> None:
-    args = (command.args or '').split()
-    username_filter = None
-    limit = 20
-    for arg in args:
-        if arg.startswith('@'):
-            username_filter = arg.lstrip('@')
-        elif arg.isdigit():
-            limit = min(max(int(arg), 1), 50)
-
-    query = UserLog.all()
-    if username_filter:
-        query = query.filter(tg_username__icontains=username_filter)
-    logs = await query.order_by('-created_at').limit(limit)
-
-    if not logs:
-        await message.answer(
-            f'Логов от @{username_filter} не найдено' if username_filter else 'Логов пока нет'
-        )
-        return
-
-    header = (
-        f'<b>💬 {len(logs)} сообщений от @{username_filter}</b>\n'
-        if username_filter else
-        f'<b>💬 Последние {len(logs)} сообщений</b>\n'
-    )
-    lines = [header]
-    for log in reversed(logs):
-        ts = log.created_at.strftime('%d.%m %H:%M')
-        icon = '🔘' if log.log_type == 'callback' else '💬'
-        name = log.tg_first_name or '?'
-        user_ref = f'@{log.tg_username}' if log.tg_username else f'id{log.tg_id}'
-        text = (log.text or '')[:60]
-        if len(log.text or '') > 60:
-            text += '…'
-        lines.append(f'{icon} <b>{name}</b> ({user_ref}) · {ts}\n<code>{text}</code>')
-
-    result = '\n\n'.join(lines)
-    if len(result) > 4096:
-        result = result[:4090] + '\n…'
-    await message.answer(result)
 
 
 @router.message(Command('lycreg_captcha'))

@@ -16,8 +16,9 @@ router = Router(name=__name__)
 
 
 @router.message(Command('start', 'reg'))
-async def start(message: Message) -> None:
-    exists = await User.filter(tg_id=message.from_user.id).exists()
+async def start(message: Message, user_id: int | None = None) -> None:
+    uid = user_id or message.from_user.id
+    exists = await User.filter(tg_id=uid).exists()
     if not exists:
         await message.answer(
             '<b>Приветствуем вас!</b>\n'
@@ -40,11 +41,12 @@ async def timetable_mi(message: Message) -> None:
 
 
 @router.message(Command('help'))
-async def help_command(message: Message) -> None:
-    if not await User.filter(tg_id=message.from_user.id).exists():
+async def help_command(message: Message, user_id: int | None = None) -> None:
+    uid = user_id or message.from_user.id
+    if not await User.filter(tg_id=uid).exists():
         await message.answer(errors.SHOULD_REGISTER, reply_markup=keyboards.start_button)
         return
-    cred = await UserCredentials.get_or_none(tg_id=message.from_user.id)
+    cred = await UserCredentials.get_or_none(tg_id=uid)
     await message.answer(
         '<i>📆 расписание</i>\n'
         '/today - Расписание на сегодня\n'
@@ -71,7 +73,7 @@ async def help_command(message: Message) -> None:
 
 
 @router.message(Command('status'))
-async def lesson_status(message: Message) -> None:
+async def lesson_status(message: Message, user_id: int | None = None) -> None:
     def convert_minutes(m: int) -> str:
         if 10 < m < 20:
             return f'{m} минут'
@@ -100,7 +102,7 @@ async def lesson_status(message: Message) -> None:
             return convert_hours(t // 60)
         return f'{convert_hours(t // 60)} {convert_minutes(mins)}'
 
-    if not await User.filter(tg_id=message.from_user.id).exists():
+    if not await User.filter(tg_id=user_id or message.from_user.id).exists():
         await message.answer(errors.SHOULD_REGISTER)
         return
 
@@ -126,26 +128,29 @@ async def lesson_status(message: Message) -> None:
 
 
 @router.message(Command('today', 't'))
-async def today(message: Message) -> None:
+async def today(message: Message, user_id: int | None = None) -> None:
     from tgbot.json_work import Json
-    if not await User.filter(tg_id=message.from_user.id).exists():
+    uid = user_id or message.from_user.id
+    if not await User.filter(tg_id=uid).exists():
         await message.answer(errors.SHOULD_REGISTER)
         return
-    await message.answer(await Json().timetable(message.from_user.id, 0))
+    await message.answer(await Json().timetable(uid, 0))
 
 
 @router.message(Command('next', 'n'))
-async def next_day(message: Message) -> None:
+async def next_day(message: Message, user_id: int | None = None) -> None:
     from tgbot.json_work import Json
-    if not await User.filter(tg_id=message.from_user.id).exists():
+    uid = user_id or message.from_user.id
+    if not await User.filter(tg_id=uid).exists():
         await message.answer(errors.SHOULD_REGISTER)
         return
-    await message.answer(await Json().timetable(message.from_user.id, -1))
+    await message.answer(await Json().timetable(uid, -1))
 
 
 @router.message(Command('all', 'a'))
-async def all_days(message: Message) -> None:
-    if not await User.filter(tg_id=message.from_user.id).exists():
+async def all_days(message: Message, user_id: int | None = None) -> None:
+    uid = user_id or message.from_user.id
+    if not await User.filter(tg_id=uid).exists():
         await message.answer(errors.SHOULD_REGISTER)
         return
     await message.answer('Выберите день недели', reply_markup=keyboards.all_command_buttons())

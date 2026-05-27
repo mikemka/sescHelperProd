@@ -46,14 +46,14 @@ async def cb_start02(cb: CallbackQuery) -> None:
 @router.callback_query(F.data == 'start03')
 async def cb_start03(cb: CallbackQuery) -> None:
     from tgbot.handlers.actions import start
-    await start(cb.message)
+    await start(cb.message, user_id=cb.from_user.id)
     await cb.answer()
 
 
 @router.callback_query(F.data == 'start04')
 async def cb_start04(cb: CallbackQuery) -> None:
     from tgbot.handlers.actions import help_command
-    await help_command(cb.message)
+    await help_command(cb.message, user_id=cb.from_user.id)
     await cb.answer()
 
 
@@ -75,7 +75,7 @@ async def cb_start06(cb: CallbackQuery) -> None:
         await cb.answer()
         return
     from tgbot.handlers.actions import start
-    await start(cb.message)
+    await start(cb.message, user_id=cb.from_user.id)
     await cb.answer()
 
 
@@ -120,13 +120,13 @@ async def cb_help(cb: CallbackQuery) -> None:
     from tgbot.handlers.actions import all_days, lesson_status, next_day, today
     code = cb.data[-2:]
     if code == '01':
-        await all_days(cb.message)
+        await all_days(cb.message, user_id=cb.from_user.id)
     elif code == '02':
-        await today(cb.message)
+        await today(cb.message, user_id=cb.from_user.id)
     elif code == '03':
-        await next_day(cb.message)
+        await next_day(cb.message, user_id=cb.from_user.id)
     elif code == '04':
-        await lesson_status(cb.message)
+        await lesson_status(cb.message, user_id=cb.from_user.id)
     await cb.answer()
 
 

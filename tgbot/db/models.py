@@ -8,7 +8,7 @@ class User(Model):
     tg_username = fields.CharField(max_length=255, null=True)
     tg_first_name = fields.CharField(max_length=255, null=True)
     tg_last_name = fields.CharField(max_length=255, null=True)
-    form = fields.CharField(max_length=10)
+    form = fields.CharField(max_length=255)
     is_teacher = fields.BooleanField(default=False)
     is_blocked = fields.BooleanField(default=False)
     created_at = fields.DatetimeField(auto_now_add=True)

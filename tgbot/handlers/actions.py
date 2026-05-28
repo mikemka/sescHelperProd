@@ -194,7 +194,7 @@ async def thcom(message: Message) -> None:
         await message.answer(errors.SHOULD_REGISTER, reply_markup=keyboards.start_button)
         return
     await set_user_status(message.from_user.id, 'thcom')
-    await message.answer('Выберите класс', reply_markup=keyboards.get_forms_keyboard())
+    await message.answer('Выберите класс', reply_markup=await keyboards.get_forms_keyboard())
 
 
 # ── text button aliases ────────────────────────────────────────────────────────
@@ -244,9 +244,9 @@ async def btn_other_class(message: Message) -> None:
 @router.message(UserStatusFilter('start > 01'))
 async def register_student(message: Message) -> None:
     from transliterate import translit
-    from tgbot.json_work import Json
+    from tgbot.schedule_data import get_schedule_data
     tmp = translit(message.text.upper(), 'ru')
-    if tmp in Json().data["group"]:
+    if tmp in (await get_schedule_data())["group"]:
         await User.create(
             tg_id=message.from_user.id,
             tg_username=message.from_user.username,
@@ -266,9 +266,9 @@ async def register_student(message: Message) -> None:
 @router.message(UserStatusFilter('thcom'))
 async def thcom_class_input(message: Message) -> None:
     from transliterate import translit
-    from tgbot.json_work import Json
+    from tgbot.schedule_data import get_schedule_data
     tmp = translit(message.text.upper(), 'ru')
-    if tmp in Json().data["group"]:
+    if tmp in (await get_schedule_data())["group"]:
         await set_user_status(message.from_user.id, f'thcom*{tmp}')
         await message.answer(
             f'Класс - {tmp}. Выберите день',
@@ -282,9 +282,9 @@ async def thcom_class_input(message: Message) -> None:
 async def register_teacher(message: Message) -> None:
     from transliterate import translit
     from rapidfuzz import fuzz
-    from tgbot.json_work import Json
+    from tgbot.schedule_data import get_schedule_data
     text, mc = translit(message.text, 'ru'), ('Нет', 0)
-    for i in Json().data["teacher"]:
+    for i in (await get_schedule_data())["teacher"]:
         if mc[1] < (k := fuzz.token_set_ratio(text, i)):
             mc = i, k
     await set_user_status(message.from_user.id, f'*i*{mc[0]}')

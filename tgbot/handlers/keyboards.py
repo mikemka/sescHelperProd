@@ -9,7 +9,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-from tgbot.sesc_json import SESC_JSON
+from tgbot.schedule_data import get_schedule_data
 
 
 # ── inline ────────────────────────────────────────────────────────────────────
@@ -181,14 +181,16 @@ def keyboard_r(is_authorised: bool = False) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
 
-def get_forms_keyboard() -> ReplyKeyboardMarkup:
-    forms = list(SESC_JSON['group'].keys())
+async def get_forms_keyboard() -> ReplyKeyboardMarkup:
+    sched = await get_schedule_data()
+    forms = list(sched['group'].keys())
     rows = [[KeyboardButton(text=f)] for f in forms]
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
 
 
-def get_teachers_keyboard() -> ReplyKeyboardMarkup:
-    teachers = list(SESC_JSON['teacher'].keys())
+async def get_teachers_keyboard() -> ReplyKeyboardMarkup:
+    sched = await get_schedule_data()
+    teachers = list(sched['teacher'].keys())
     rows = []
     for i in range(0, len(teachers), 2):
         row = [KeyboardButton(text=teachers[i])]

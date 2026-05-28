@@ -6,6 +6,7 @@ import simplejson as json
 from datetime import datetime
 
 from tgbot.db.models import User
+from tgbot.schedule_data import get_schedule_data
 from tgbot.sesc_json import SESC_JSON
 
 
@@ -23,23 +24,25 @@ class Json:
         if not weekday:
             return '<b>В этот день нет уроков!</b>'
 
+        sched = await get_schedule_data()
+
         if form:
             return (
                 f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - <code>{form}</code>\n'
                 f'{"━" * 15}\n'
-                f'{await self.create_table(await self.get_json(weekday, int(self.data["group"][form])))}'
+                f'{await self.create_table(await self.get_json(weekday, int(sched["group"][form])))}'
             )
 
         user = await User.get(tg_id=user_id)
         if user.is_teacher:
-            teacher_id = self.data["teacher"].get(user.form, 172)
+            teacher_id = int(sched["teacher"].get(user.form, 172))
             return (
                 f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b>\n'
                 f'{"━" * 15}\n'
                 f'{await self.create_table(await self.get_teacher_json(weekday, teacher_id))}'
             )
 
-        user_form_id = int(self.data["group"][user.form])
+        user_form_id = int(sched["group"][user.form])
         return (
             f'<b>Расписание на {self.data["weekdays_inverted"][str(weekday)]}</b> - <code>{user.form}</code>\n'
             f'{"━" * 15}\n'

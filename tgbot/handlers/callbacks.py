@@ -29,7 +29,7 @@ async def cb_start01(cb: CallbackQuery) -> None:
         await cb.answer(text='Вы уже зарегистрированы! Для начала воспользуйтесь /reg', show_alert=True)
         return
     await set_user_status(cb.from_user.id, 'start > 01')
-    await cb.message.answer('Хорошо, теперь введите класс в формате "10А"', reply_markup=keyboards.get_forms_keyboard())
+    await cb.message.answer('Хорошо, теперь введите класс в формате "10А"', reply_markup=await keyboards.get_forms_keyboard())
     await cb.answer()
 
 
@@ -38,7 +38,7 @@ async def cb_start02(cb: CallbackQuery) -> None:
     await set_user_status(cb.from_user.id, 'start > 02')
     await cb.message.answer(
         'Хорошо, теперь введите свою фамилию и инициалы\nНапример, <b>Иванова Т А</b>',
-        reply_markup=keyboards.get_teachers_keyboard(),
+        reply_markup=await keyboards.get_teachers_keyboard(),
     )
     await cb.answer()
 
